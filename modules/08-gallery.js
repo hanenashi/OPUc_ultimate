@@ -7,6 +7,7 @@
         isLoading: false,
         hasMore: true,
         selectedImages: new Set(),
+        observer: null,
 
         open: function() {
             if (window.OPUcLog) window.OPUcLog.info("Opening OPUc Gallery Overlay...");
@@ -42,21 +43,14 @@
 
                 const grid = document.createElement('div');
                 grid.id = 'opuc-gallery-grid';
-                // FIX: Rock-solid Flexbox instead of CSS Grid to prevent mobile squishing
                 grid.style.cssText = 'flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-content: flex-start;';
                 
-                // FIX: Bulletproof scroll math
-                grid.addEventListener('scroll', () => {
-                    if (this.isLoading || !this.hasMore) return;
-                    
-                    // Calculate how far we are from the bottom of the scrolling container
-                    const distanceToBottom = grid.scrollHeight - grid.scrollTop - grid.clientHeight;
-                    
-                    // If we are within 400px of the bottom, fetch the next page
-                    if (distanceToBottom < 400) {
+                this.observer = new IntersectionObserver((entries) => {
+                    if (entries[0].isIntersecting && !this.isLoading && this.hasMore) {
+                        if (window.OPUcLog) window.OPUcLog.debug("Sentinel reached. Fetching next page...");
                         this.fetchPage(this.currentPage + 1);
                     }
-                });
+                }, { root: grid, rootMargin: '300px' });
 
                 const footer = document.createElement('div');
                 footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
@@ -94,7 +88,7 @@
         close: function() {
             const modal = document.getElementById('opuc-gallery-modal');
             if (modal) modal.style.display = 'none';
-            document.body.style.overflow = ''; // Restore Okoun scrolling
+            document.body.style.overflow = '';
             
             this.selectedImages.clear();
             this.updateStatus();
@@ -115,11 +109,14 @@
                 onload: (response) => {
                     if (response.finalUrl.includes('page=prihlaseni')) {
                         if (window.OPUcLog) window.OPUcLog.error("Not logged in to OPU.");
+                        this.isLoading = false;
                         this.close();
                         return;
                     }
+                    
+                    // FIX: Set isLoading to false BEFORE rendering, so the observer can immediately fire if needed
+                    this.isLoading = false; 
                     this.parseHTMLAndRender(response.responseText);
-                    this.isLoading = false;
                 },
                 onerror: () => {
                     if (window.OPUcLog) window.OPUcLog.error("Failed to fetch gallery page.");
@@ -146,7 +143,6 @@
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'opuc-gallery-item';
-                // FIX: Hardcoded 100x100px so they never squish, forcing the container to scroll
                 wrapper.style.cssText = 'width: 100px; height: 100px; flex-shrink: 0; border: 2px solid transparent; border-radius: 4px; overflow: hidden; cursor: pointer; transition: transform 0.1s; background: #000;';
                 
                 const img = document.createElement('img');
@@ -159,6 +155,21 @@
                 wrapper.appendChild(img);
                 grid.appendChild(wrapper);
             });
+
+            // FIX: Destroy and recreate the sentinel completely to guarantee the observer re-evaluates
+            let oldSentinel = document.getElementById('opuc-gallery-sentinel');
+            if (oldSentinel) {
+                if (this.observer) this.observer.unobserve(oldSentinel);
+                oldSentinel.remove();
+            }
+            
+            const newSentinel = document.createElement('div');
+            newSentinel.id = 'opuc-gallery-sentinel';
+            // Flex-basis 100% forces it to take up an entire row at the bottom
+            newSentinel.style.cssText = 'flex-basis: 100%; height: 10px; pointer-events: none;';
+            grid.appendChild(newSentinel);
+            
+            if (this.observer) this.observer.observe(newSentinel);
         },
 
         toggleSelection: function(wrapper, url, img) {
