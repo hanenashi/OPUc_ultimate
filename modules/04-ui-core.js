@@ -9,7 +9,6 @@
 
             const isLoggedIn = window.OPUcConfig.state.isLoggedIn;
 
-            // 1. Build & Inject Staging Area
             const stagingArea = document.createElement('div');
             stagingArea.id = 'opuc-staging-area';
             
@@ -25,9 +24,10 @@
             stagingArea.appendChild(stagingControls);
             dom.textArea.parentNode.insertBefore(stagingArea, dom.textArea);
 
-            // 2. Build & Inject Main Button (Silent & Native Look)
+            // NATIVE OKOUN BUTTON CLONE
             const opucBtn = document.createElement('button');
             opucBtn.id = 'opuc-main-btn';
+            opucBtn.className = 'submit'; // Matches Okoun's native CSS class perfectly
             opucBtn.type = 'button';
             opucBtn.innerHTML = 'OPUc';
             opucBtn.title = 'Left Click: Add File | Right Click: Menu';
@@ -39,21 +39,14 @@
             
             dom.toolsRow.appendChild(opucBtn);
 
-            // 3. Build Hidden File Input
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
             fileInput.style.display = 'none';
-            
-            // ANON MODE RESTRICTION: Disable OS multi-select if logged out
             fileInput.multiple = isLoggedIn; 
-            
             document.body.appendChild(fileInput);
 
-            // 4. Build Context Menu
             this.buildContextMenu(opucBtn, isLoggedIn);
-
-            // 5. Attach Event Listeners
             this.attachButtonEvents(opucBtn, fileInput);
             
             fileInput.addEventListener('change', (e) => {
@@ -77,6 +70,7 @@
                 background: var(--opuc-bg-primary, #2b2b2b); border: 1px solid var(--opuc-accent, #FF9800); 
                 border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
                 z-index: var(--opuc-z-index-overlay, 2147483647); min-width: 150px; overflow: hidden;
+                font-family: system-ui, -apple-system, Segoe UI, sans-serif;
             `;
 
             const createItem = (icon, text, onClick, isDisabled = false) => {
@@ -105,7 +99,6 @@
                 return item;
             };
 
-            // Gallery is visually restricted but doesn't shout at the user
             menu.appendChild(createItem('🖼️', 'Gallery', () => {
                 if (window.OPUcGallery) window.OPUcGallery.open();
             }, !isLoggedIn));
