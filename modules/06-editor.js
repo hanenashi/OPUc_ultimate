@@ -124,8 +124,33 @@
     window.OPUcCore.handleIncomingFiles = function(files) {
         const stagingEnabled = window.OPUcConfig.settings.stagingEnabled;
         const stagingItems = document.getElementById('opuc-staging-items');
+        const isLoggedIn = window.OPUcConfig.state.isLoggedIn;
 
-        Array.from(files).forEach(file => {
+        let filesArray = Array.from(files);
+
+        // --- ANON MODE BATCH ENFORCER ---
+        if (!isLoggedIn) {
+            const currentQueueSize = window.OPUcEditor.queue.filter(i => i !== null).length;
+            
+            if (filesArray.length > 1 || currentQueueSize >= 1) {
+                // Toast notification
+                const t = document.createElement('div');
+                t.innerText = "Anon mode limited to 1 file. Log in for batch uploads.";
+                t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#F44336;color:#fff;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
+                document.body.appendChild(t);
+                setTimeout(()=>t.remove(), 3500);
+
+                if (window.OPUcLog) window.OPUcLog.warn("Blocked Anon batch upload attempt.");
+
+                if (currentQueueSize >= 1) {
+                    return; // Queue is full for anons. Drop the action completely.
+                } else {
+                    filesArray = [filesArray[0]]; // Strip down to just the first file
+                }
+            }
+        }
+
+        filesArray.forEach(file => {
             if (stagingEnabled) {
                 window.OPUcUI.toggleStaging(true);
                 const newIndex = window.OPUcEditor.queue.length;
