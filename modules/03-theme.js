@@ -4,28 +4,24 @@
 
     window.OPUcTheme = {
         inject: function() {
-            if (window.OPUcLog) window.OPUcLog.debug("Booting Theme Engine...");
-
-            // Create a native style element to bypass Greasemonkey/Firefox restrictions
             const style = document.createElement('style');
             style.id = 'opuc-theme-styles';
             style.innerHTML = `
-                /* --- CSS VARIABLES --- */
+                /* --- CSS VARIABLES (Okoun Native Light Theme) --- */
                 :root {
-                    --opuc-bg-primary: #2b2b2b;
-                    --opuc-bg-secondary: #1a1a1a;
-                    --opuc-text-main: #ffffff;
-                    --opuc-text-muted: #aaaaaa;
+                    --opuc-bg-primary: #f0f0f0;
+                    --opuc-bg-secondary: #ffffff;
+                    --opuc-text-main: #333333;
+                    --opuc-text-muted: #777777;
                     --opuc-accent: #FF9800;
-                    --opuc-accent-hover: #e68a00;
-                    --opuc-border: #444444;
+                    --opuc-accent-hover: #F57C00;
+                    --opuc-border: #cccccc;
                     --opuc-danger: #F44336;
                     --opuc-success: #4CAF50;
                     --opuc-radius: 4px;
                     --opuc-z-index-overlay: 2147483647;
                 }
 
-                /* --- BASE CSS --- */
                 #opuc-staging-area {
                     display: none; 
                     width: 100%;
@@ -51,10 +47,7 @@
                     background-color: rgba(255, 152, 0, 0.1) !important;
                 }
             `;
-            
             document.head.appendChild(style);
-
-            if (window.OPUcLog) window.OPUcLog.info("Theme styles injected natively (Firefox safe).");
         }
     };
 })();
