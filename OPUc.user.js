@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OPUc - Ultimate Okoun x OPU Integration
 // @namespace    https://github.com/hanenashi/OPUc_ultimate
-// @version      0.1.6
+// @version      0.1.7
 // @description  Brings opu.peklo.biz directly into okoun.cz via smart overlays and interceptors.
 // @author       kokochan / hanenashi
 // @match        *://www.okoun.cz/boards/*
@@ -14,19 +14,19 @@
 // @connect      opu.peklo.biz
 
 // --- CSS RESOURCES ---
-// @resource     OPUcBaseCSS https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/css/base.css?v=0.1.6
-// @resource     OPUcThemeVanilla https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/css/theme-vanilla.css?v=0.1.6
+// @resource     OPUcBaseCSS https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/css/base.css?v=0.1.7
+// @resource     OPUcThemeVanilla https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/css/theme-vanilla.css?v=0.1.7
 
 // --- MODULE IMPORTS ---
-// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/01-logger.js?v=0.1.6
-// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/02-config.js?v=0.1.6
-// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/03-theme.js?v=0.1.6
-// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/04-ui-core.js?v=0.1.6
-// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/05-interceptors.js?v=0.1.6
-// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/06-editor.js?v=0.1.6
-// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/07-api.js?v=0.1.6
-// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/08-gallery.js?v=0.1.6
-// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/09-init.js?v=0.1.6
+// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/01-logger.js?v=0.1.7
+// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/02-config.js?v=0.1.7
+// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/03-theme.js?v=0.1.7
+// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/04-ui-core.js?v=0.1.7
+// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/05-interceptors.js?v=0.1.7
+// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/06-editor.js?v=0.1.7
+// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/07-api.js?v=0.1.7
+// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/08-gallery.js?v=0.1.7
+// @require      https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/modules/09-init.js?v=0.1.7
 // ==/UserScript==
 
 // The script logic is entirely handled by the imported modules.
