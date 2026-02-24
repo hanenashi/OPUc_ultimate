@@ -102,11 +102,14 @@
         },
 
         // 4. Okoun Formatter & Injector
+                // In modules/07-api.js
         injectIntoOkoun: function(imageUrl) {
             const textArea = window.OPUcConfig.dom.textArea;
             if (!textArea) return;
 
-            const formattedTag = `<img src="${imageUrl}">\n`;
+            // Fetch custom format from settings, defaulting to HTML
+            const formatString = window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">');
+            const formattedTag = formatString.replace(/%url%/g, imageUrl) + '\n';
             
             const startPos = textArea.selectionStart;
             const endPos = textArea.selectionEnd;
@@ -119,8 +122,6 @@
             }
             
             if (window.OPUcLog) window.OPUcLog.info("Successfully injected image tag into Okoun reply box.");
-            
-            // Trigger Okoun's input event so any native board scripts know the text changed
             textArea.dispatchEvent(new Event('input', { bubbles: true }));
         }
     };
