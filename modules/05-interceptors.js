@@ -14,7 +14,6 @@
             responseType: 'blob',
             onload: function(res) {
                 if (res.status === 200 && res.response instanceof Blob) {
-                    // Extract extension or fallback to png
                     let ext = 'png';
                     const match = url.match(/\.(png|jpe?g|gif|webp|bmp)/i);
                     if (match) ext = match[1].toLowerCase();
@@ -26,7 +25,6 @@
                     window.OPUcCore.handleIncomingFiles([file]);
                 } else {
                     if (window.OPUcLog) window.OPUcLog.error(`Failed to leech URL. HTTP ${res.status}`);
-                    // Only show a subtle toast instead of an annoying alert
                     const t = document.createElement('div');
                     t.innerText = "OPUc: Failed to leech image from URL. Server might be blocking access.";
                     t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#F44336;color:#fff;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
@@ -42,14 +40,12 @@
 
     // --- HELPER: Extract URL from Text or HTML ---
     const extractImageUrl = (textData, htmlData) => {
-        // 1. Try to find a raw, clean URL in the text
         if (textData) {
             const cleanText = textData.trim();
             if (/^https?:\/\/.*\.(png|jpe?g|gif|webp|bmp)(\?.*)?$/i.test(cleanText)) {
                 return cleanText;
             }
         }
-        // 2. Try to parse HTML to find an embedded <img> tag (common when copying from websites)
         if (htmlData) {
             const doc = new DOMParser().parseFromString(htmlData, 'text/html');
             const img = doc.querySelector('img');
@@ -71,6 +67,8 @@
             const shortcut = shortcutRaw.toLowerCase().replace(/\s/g, '');
 
             // --- NATIVE PASTE EVENT (Ctrl+V) ---
+            // Pure: Only intercepts raw image blobs (Snipping Tool, OS Files). 
+            // Ignores everything else (text, URLs, HTML) so standard pasting works perfectly.
             dom.textArea.addEventListener('paste', (e) => {
                 const clipboard = e.clipboardData || window.clipboardData;
                 if (!clipboard) return;
@@ -88,18 +86,6 @@
                     e.preventDefault(); 
                     if (window.OPUcLog) window.OPUcLog.info(`Intercepted ${filesToProcess.length} pasted image(s).`);
                     window.OPUcCore.handleIncomingFiles(filesToProcess);
-                } else {
-                    // Check if they pasted an image URL or an HTML image tag
-                    const text = clipboard.getData('text/plain');
-                    const html = clipboard.getData('text/html');
-                    const foundUrl = extractImageUrl(text, html);
-                    
-                    if (foundUrl) {
-                        e.preventDefault(); 
-                        window.OPUcCore.leechUrl(foundUrl);
-                    }
-                    // If no image and no URL, we do NOT e.preventDefault(). 
-                    // The browser will natively paste the text exactly as the user intended.
                 }
             });
 
@@ -123,7 +109,6 @@
                             for (const item of clipboardItems) {
                                 if (window.OPUcLog) window.OPUcLog.debug(`Clipboard item types detected: [${item.types.join(', ')}]`);
 
-                                // If Chrome hid the OS file completely
                                 if (item.types.length === 0) {
                                     if (window.OPUcLog) window.OPUcLog.warn("Browser blocked OS File Explorer copy. Prompting user to use Ctrl+V.");
                                     const t = document.createElement('div');
@@ -136,14 +121,12 @@
 
                                 const imageTypes = item.types.filter(type => type.startsWith('image/'));
                                 
-                                // 1. Grab raw images if available (Snipping Tool, Web copies)
                                 if (imageTypes.length > 0) {
                                     for (const type of imageTypes) {
                                         const blob = await item.getType(type);
                                         files.push(new File([blob], `clipboard_${Date.now()}.${type.split('/')[1]}`, { type }));
                                     }
                                 } else {
-                                    // 2. Hunt for URLs inside Text or HTML
                                     let textData = '', htmlData = '';
                                     if (item.types.includes('text/plain')) {
                                         const textBlob = await item.getType('text/plain');
