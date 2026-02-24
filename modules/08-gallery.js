@@ -10,8 +10,6 @@
         observer: null,
 
         open: function() {
-            if (window.OPUcLog) window.OPUcLog.info("Opening OPUc Gallery Overlay...");
-            
             let modal = document.getElementById('opuc-gallery-modal');
             
             if (!modal) {
@@ -19,25 +17,25 @@
                 modal.id = 'opuc-gallery-modal';
                 modal.style.cssText = `
                     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-                    background: rgba(0,0,0,0.85); z-index: var(--opuc-z-index-overlay, 2147483647);
+                    background: rgba(0,0,0,0.6); z-index: var(--opuc-z-index-overlay, 2147483647);
                     display: flex; flex-direction: column; align-items: center; justify-content: center;
                     backdrop-filter: blur(5px);
                 `;
 
                 const container = document.createElement('div');
                 container.style.cssText = `
-                    width: 90%; max-width: 1000px; height: 85%; background: var(--opuc-bg-primary, #2b2b2b);
-                    border-radius: 8px; border: 1px solid var(--opuc-accent, #FF9800);
-                    display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                    width: 90%; max-width: 1000px; height: 85%; background: var(--opuc-bg-secondary);
+                    border-radius: 8px; border: 1px solid var(--opuc-border);
+                    display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
                 `;
 
                 const header = document.createElement('div');
-                header.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
-                header.innerHTML = '<b style="color: var(--opuc-text-main, #fff); font-size: 18px;">🖼️ OPUc Gallery</b>';
+                header.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center;';
+                header.innerHTML = '<b style="color: var(--opuc-text-main); font-size: 18px;">🖼️ OPUc Gallery</b>';
                 
                 const closeBtn = document.createElement('button');
                 closeBtn.innerHTML = '✖';
-                closeBtn.style.cssText = 'background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;';
+                closeBtn.style.cssText = 'background: none; border: none; color: var(--opuc-text-main); font-size: 20px; cursor: pointer;';
                 closeBtn.onclick = () => this.close();
                 header.appendChild(closeBtn);
 
@@ -47,22 +45,21 @@
                 
                 this.observer = new IntersectionObserver((entries) => {
                     if (entries[0].isIntersecting && !this.isLoading && this.hasMore) {
-                        if (window.OPUcLog) window.OPUcLog.debug("Sentinel reached. Fetching next page...");
                         this.fetchPage(this.currentPage + 1);
                     }
                 }, { root: grid, rootMargin: '300px' });
 
                 const footer = document.createElement('div');
-                footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
+                footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center;';
                 
                 const statusText = document.createElement('span');
                 statusText.id = 'opuc-gallery-status';
-                statusText.style.cssText = 'color: #ccc; font-size: 14px;';
+                statusText.style.cssText = 'color: var(--opuc-text-muted); font-size: 14px;';
                 statusText.innerText = '0 selected';
 
                 const insertBtn = document.createElement('button');
                 insertBtn.innerText = 'Insert Selected';
-                insertBtn.style.cssText = 'background: var(--opuc-accent, #FF9800); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
+                insertBtn.style.cssText = 'background: var(--opuc-accent); color: #fff; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
                 insertBtn.onclick = () => this.insertSelected();
 
                 footer.appendChild(statusText);
@@ -89,7 +86,6 @@
             const modal = document.getElementById('opuc-gallery-modal');
             if (modal) modal.style.display = 'none';
             document.body.style.overflow = '';
-            
             this.selectedImages.clear();
             this.updateStatus();
             document.querySelectorAll('.opuc-gallery-item').forEach(el => el.style.border = '2px solid transparent');
@@ -97,18 +93,14 @@
 
         fetchPage: function(pageNum) {
             if (this.isLoading || !this.hasMore) return;
-            
             this.isLoading = true;
             this.currentPage = pageNum;
-
-            if (window.OPUcLog) window.OPUcLog.debug(`Fetching OPU gallery page ${pageNum}...`);
 
             window.OPUcRequest({
                 method: 'GET',
                 url: `${window.OPUcConfig.api.gallery}&recordStart=${pageNum}`,
                 onload: (response) => {
                     if (response.finalUrl && response.finalUrl.includes('page=prihlaseni')) {
-                        if (window.OPUcLog) window.OPUcLog.error("Not logged in to OPU.");
                         this.isLoading = false;
                         this.close();
                         return;
@@ -116,10 +108,7 @@
                     this.isLoading = false; 
                     this.parseHTMLAndRender(response.responseText);
                 },
-                onerror: () => {
-                    if (window.OPUcLog) window.OPUcLog.error("Failed to fetch gallery page.");
-                    this.isLoading = false;
-                }
+                onerror: () => { this.isLoading = false; }
             });
         },
 
@@ -129,7 +118,6 @@
             const grid = document.getElementById('opuc-gallery-grid');
 
             if (boxes.length === 0) {
-                if (window.OPUcLog) window.OPUcLog.debug("Reached end of gallery history.");
                 this.hasMore = false;
                 return;
             }
@@ -141,7 +129,7 @@
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'opuc-gallery-item';
-                wrapper.style.cssText = 'width: 100px; height: 100px; flex-shrink: 0; border: 2px solid transparent; border-radius: 4px; overflow: hidden; cursor: pointer; transition: transform 0.1s; background: #000;';
+                wrapper.style.cssText = 'width: 100px; height: 100px; flex-shrink: 0; border: 2px solid transparent; border-radius: 4px; overflow: hidden; cursor: pointer; transition: transform 0.1s; background: var(--opuc-bg-primary);';
                 
                 const img = document.createElement('img');
                 img.loading = 'lazy'; 
@@ -149,7 +137,6 @@
                 img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; opacity: 0.8; pointer-events: none;';
 
                 wrapper.onclick = () => this.toggleSelection(wrapper, fullUrl, img);
-                
                 wrapper.appendChild(img);
                 grid.appendChild(wrapper);
             });
@@ -164,7 +151,6 @@
             newSentinel.id = 'opuc-gallery-sentinel';
             newSentinel.style.cssText = 'flex-basis: 100%; height: 10px; pointer-events: none;';
             grid.appendChild(newSentinel);
-            
             if (this.observer) this.observer.observe(newSentinel);
         },
 
@@ -176,7 +162,7 @@
                 img.style.opacity = '0.8';
             } else {
                 this.selectedImages.add(url);
-                wrapper.style.border = '2px solid var(--opuc-accent, #FF9800)';
+                wrapper.style.border = '2px solid var(--opuc-accent)';
                 wrapper.style.transform = 'scale(0.95)';
                 img.style.opacity = '1';
             }
