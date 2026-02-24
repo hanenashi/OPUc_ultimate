@@ -93,16 +93,28 @@
             const shortcutRaw = window.OPUcConfig.settings.uploadShortcut || 'Alt+V';
             const shortcut = shortcutRaw.toLowerCase().replace(/\s/g, '');
 
+            // --- NATIVE PASTE EVENT (Ctrl+V) ---
             dom.textArea.addEventListener('paste', (e) => {
                 const clipboard = e.clipboardData || window.clipboardData;
                 if (!clipboard) return;
 
                 const filesToProcess = [];
-                for (let i = 0; i < clipboard.items.length; i++) {
-                    const item = clipboard.items[i];
-                    if (item.type.indexOf('image') !== -1) {
-                        const blob = item.getAsFile();
-                        if (blob) filesToProcess.push(blob);
+
+                // 1. W3C Standard (Better for Firefox multi-file)
+                if (clipboard.files && clipboard.files.length > 0) {
+                    Array.from(clipboard.files).forEach(file => {
+                        if (file.type.startsWith('image/')) filesToProcess.push(file);
+                    });
+                }
+                
+                // 2. Legacy/Chrome Fallback (If files array is empty)
+                if (filesToProcess.length === 0 && clipboard.items) {
+                    for (let i = 0; i < clipboard.items.length; i++) {
+                        const item = clipboard.items[i];
+                        if (item.type.startsWith('image/')) {
+                            const blob = item.getAsFile();
+                            if (blob) filesToProcess.push(blob);
+                        }
                     }
                 }
 
@@ -110,7 +122,6 @@
                     e.preventDefault(); 
                     window.OPUcCore.handleIncomingFiles(filesToProcess);
                 } else if (window.OPUcConfig.settings.interceptPasteUrls) {
-                    // FIREFOX FIX: If setting is enabled, parse URLs natively on Ctrl+V
                     const text = clipboard.getData('text/plain');
                     const html = clipboard.getData('text/html');
                     const foundUrls = extractImageUrls(text, html);
@@ -121,6 +132,7 @@
                 }
             });
 
+            // --- ASYNC CLIPBOARD API FOR CUSTOM HOTKEYS (e.g., Alt+V) ---
             if (shortcut !== 'ctrl+v' && shortcut !== '' && shortcut !== 'none') {
                 const keys = shortcut.split('+');
                 const reqCtrl = keys.includes('ctrl');
@@ -161,6 +173,7 @@
                 });
             }
 
+            // --- DRAG & DROP INTERCEPTOR ---
             if (window.OPUcConfig.settings.interceptDrop) {
                 dom.textArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dom.textArea.classList.add('opuc-drag-active'); });
                 dom.textArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dom.textArea.classList.remove('opuc-drag-active'); });
