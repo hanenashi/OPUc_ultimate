@@ -16,6 +16,7 @@
                     background: rgba(0,0,0,0.85); z-index: var(--opuc-z-index-overlay, 2147483647);
                     display: flex; flex-direction: column; align-items: center; justify-content: center;
                     backdrop-filter: blur(5px);
+                    font-family: system-ui, -apple-system, sans-serif;
                 `;
 
                 const container = document.createElement('div');
@@ -26,7 +27,6 @@
                     color: var(--opuc-text-main, #fff);
                 `;
 
-                // Header
                 const header = document.createElement('div');
                 header.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
                 header.innerHTML = '<b style="font-size: 18px;">⚙️ OPUc Settings</b>';
@@ -37,7 +37,6 @@
                 closeBtn.onclick = () => this.close();
                 header.appendChild(closeBtn);
 
-                // Body (Form)
                 const body = document.createElement('div');
                 body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto;';
 
@@ -62,23 +61,18 @@
                     return row;
                 };
 
-                const createInput = (id, label, defaultVal) => {
+                const createInput = (id, label, defaultVal, helpText = '') => {
                     const row = document.createElement('div');
                     row.style.cssText = 'display: flex; flex-direction: column; gap: 5px; font-size: 14px;';
                     const currentVal = window.OPUcConfig.get(id, defaultVal);
-                    
-                    // FIX: Create the input without a hardcoded value string to prevent HTML escaping breaks
-                    row.innerHTML = `<span>${label} <small style="color:#aaa;">(Use <b>%url%</b> as placeholder)</small></span> 
+                    row.innerHTML = `<span>${label} ${helpText}</span> 
                                      <input type="text" id="${id}" style="padding: 8px; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; outline: none; font-family: monospace;">`;
-                    
-                    // Safely assign the value directly to the DOM element
                     row.querySelector('input').value = currentVal;
-                    
                     return row;
                 };
 
                 body.appendChild(createToggle('opuc_staging_enabled', 'Enable Staging Ribbon', true));
-                body.appendChild(createToggle('opuc_intercept_paste', 'Intercept Paste (Ctrl+V)', true));
+                body.appendChild(createInput('opuc_upload_shortcut', 'Clipboard Upload Shortcut', 'Alt+V', '<small style="color:#aaa;">(e.g., Ctrl+V or Alt+V)</small>'));
                 body.appendChild(createToggle('opuc_intercept_drop', 'Intercept Drag & Drop', true));
                 
                 body.appendChild(createSelect('opuc_primary_action', 'Primary Button Click (Left/Tap)', [
@@ -86,9 +80,8 @@
                     { value: 'gallery', text: 'Open OPU Gallery' }
                 ], 'picker'));
 
-                body.appendChild(createInput('opuc_format_tag', 'Image Injection Format', '<img src="%url%">'));
+                body.appendChild(createInput('opuc_format_tag', 'Image Injection Format', '<img src="%url%">', '<small style="color:#aaa;">(Use <b>%url%</b> as placeholder)</small>'));
 
-                // Footer Actions
                 const footer = document.createElement('div');
                 footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end;';
                 
@@ -116,7 +109,7 @@
 
         saveAndClose: function() {
             window.OPUcConfig.set('opuc_staging_enabled', document.getElementById('opuc_staging_enabled').checked);
-            window.OPUcConfig.set('opuc_intercept_paste', document.getElementById('opuc_intercept_paste').checked);
+            window.OPUcConfig.set('opuc_upload_shortcut', document.getElementById('opuc_upload_shortcut').value);
             window.OPUcConfig.set('opuc_intercept_drop', document.getElementById('opuc_intercept_drop').checked);
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             window.OPUcConfig.set('opuc_format_tag', document.getElementById('opuc_format_tag').value);
@@ -126,6 +119,8 @@
             if (window.OPUcUI) window.OPUcUI.toggleStaging(document.getElementById('opuc_staging_enabled').checked);
 
             this.close();
+            // A quick toast to remind them they need to refresh to apply the new shortcut
+            alert("Settings Saved! Please refresh the page to apply any new Keyboard Shortcuts.");
         }
     };
 })();
