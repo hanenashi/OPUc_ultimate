@@ -24,20 +24,29 @@
             stagingArea.appendChild(stagingControls);
             dom.textArea.parentNode.insertBefore(stagingArea, dom.textArea);
 
-            // NATIVE OKOUN BUTTON CLONE
+            // --- NATIVE OKOUN BUTTON CLONE (YUI Framework Wrapper) ---
+            const outerSpan = document.createElement('span');
+            outerSpan.className = 'yui-button yui-submit-button default';
+            outerSpan.style.position = 'relative'; // Required to anchor our context menu
+
+            const innerSpan = document.createElement('span');
+            innerSpan.className = 'first-child';
+
             const opucBtn = document.createElement('button');
             opucBtn.id = 'opuc-main-btn';
-            opucBtn.className = 'submit'; // Matches Okoun's native CSS class perfectly
+            opucBtn.className = 'submit'; 
             opucBtn.type = 'button';
             opucBtn.innerHTML = 'OPUc';
             opucBtn.title = 'Left Click: Add File | Right Click: Menu';
             
-            opucBtn.style.position = 'relative'; 
             opucBtn.style.userSelect = 'none';
             opucBtn.style.webkitUserSelect = 'none';
             opucBtn.style.touchAction = 'manipulation';
             
-            dom.toolsRow.appendChild(opucBtn);
+            // Assemble the YUI sandwich
+            innerSpan.appendChild(opucBtn);
+            outerSpan.appendChild(innerSpan);
+            dom.toolsRow.appendChild(outerSpan);
 
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
@@ -46,8 +55,9 @@
             fileInput.multiple = isLoggedIn; 
             document.body.appendChild(fileInput);
 
-            this.buildContextMenu(opucBtn, isLoggedIn);
-            this.attachButtonEvents(opucBtn, fileInput);
+            // Attach the menu to the outer wrapper so it doesn't break button HTML standards
+            this.buildContextMenu(outerSpan, isLoggedIn);
+            this.attachButtonEvents(opucBtn, outerSpan, fileInput);
             
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files && e.target.files.length > 0) window.OPUcCore.handleIncomingFiles(e.target.files);
@@ -56,13 +66,13 @@
 
             document.addEventListener('click', (e) => {
                 const menu = document.getElementById('opuc-context-menu');
-                if (menu && menu.style.display === 'block' && e.target !== opucBtn && !opucBtn.contains(e.target)) {
+                if (menu && menu.style.display === 'block' && e.target !== opucBtn && !outerSpan.contains(e.target)) {
                     menu.style.display = 'none';
                 }
             });
         },
 
-        buildContextMenu: function(parentBtn, isLoggedIn) {
+        buildContextMenu: function(wrapperElement, isLoggedIn) {
             const menu = document.createElement('div');
             menu.id = 'opuc-context-menu';
             menu.style.cssText = `
@@ -71,6 +81,7 @@
                 border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
                 z-index: var(--opuc-z-index-overlay, 2147483647); min-width: 150px; overflow: hidden;
                 font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+                text-align: left;
             `;
 
             const createItem = (icon, text, onClick, isDisabled = false) => {
@@ -118,10 +129,10 @@
                 if (window.OPUcSettings) window.OPUcSettings.open();
             }));
 
-            parentBtn.appendChild(menu);
+            wrapperElement.appendChild(menu);
         },
 
-        attachButtonEvents: function(btn, fileInput) {
+        attachButtonEvents: function(btn, wrapperElement, fileInput) {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const menu = document.getElementById('opuc-context-menu');
