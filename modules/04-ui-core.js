@@ -180,6 +180,15 @@
                 const menu = document.getElementById('opuc-context-menu');
                 if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
             });
+        },
+
+        // FIXED: Restored the missing toggleStaging function!
+        toggleStaging: function(forceState = null) {
+            const stagingArea = document.getElementById('opuc-staging-area');
+            if (!stagingArea) return;
+            const isEnabled = forceState !== null ? forceState : window.OPUcConfig.settings.stagingEnabled;
+            if (isEnabled) stagingArea.classList.add('active');
+            else stagingArea.classList.remove('active');
         }
     };
 })();
