@@ -103,18 +103,16 @@
 
             if (window.OPUcLog) window.OPUcLog.debug(`Fetching OPU gallery page ${pageNum}...`);
 
-            GM_xmlhttpRequest({
+            window.OPUcRequest({
                 method: 'GET',
                 url: `${window.OPUcConfig.api.gallery}&recordStart=${pageNum}`,
                 onload: (response) => {
-                    if (response.finalUrl.includes('page=prihlaseni')) {
+                    if (response.finalUrl && response.finalUrl.includes('page=prihlaseni')) {
                         if (window.OPUcLog) window.OPUcLog.error("Not logged in to OPU.");
                         this.isLoading = false;
                         this.close();
                         return;
                     }
-                    
-                    // FIX: Set isLoading to false BEFORE rendering, so the observer can immediately fire if needed
                     this.isLoading = false; 
                     this.parseHTMLAndRender(response.responseText);
                 },
@@ -156,7 +154,6 @@
                 grid.appendChild(wrapper);
             });
 
-            // FIX: Destroy and recreate the sentinel completely to guarantee the observer re-evaluates
             let oldSentinel = document.getElementById('opuc-gallery-sentinel');
             if (oldSentinel) {
                 if (this.observer) this.observer.unobserve(oldSentinel);
@@ -165,7 +162,6 @@
             
             const newSentinel = document.createElement('div');
             newSentinel.id = 'opuc-gallery-sentinel';
-            // Flex-basis 100% forces it to take up an entire row at the bottom
             newSentinel.style.cssText = 'flex-basis: 100%; height: 10px; pointer-events: none;';
             grid.appendChild(newSentinel);
             
