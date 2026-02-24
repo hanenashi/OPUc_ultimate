@@ -2,18 +2,6 @@
 (function() {
     'use strict';
 
-    // A temporary stub that will eventually live in 06-editor.js or 07-api.js
-    window.OPUcCore = window.OPUcCore || {
-        handleIncomingFiles: function(files) {
-            Array.from(files).forEach(file => {
-                if (window.OPUcLog) window.OPUcLog.info(`Processing caught file: ${file.name || 'Pasted Blob'} (${file.type})`);
-                // TODO: Check if staging is on. 
-                // IF ON -> Draw to canvas thumbnail. 
-                // IF OFF -> Send straight to OPU API.
-            });
-        }
-    };
-
     window.OPUcInterceptors = {
         init: function() {
             const dom = window.OPUcConfig.dom;
@@ -21,8 +9,12 @@
 
             if (window.OPUcLog) window.OPUcLog.debug("Arming interceptors on textarea...");
 
-            // --- PASTE INTERCEPTOR (Ctrl+V) ---
-            if (window.OPUcConfig.settings.interceptPaste) {
+            // --- CLIPBOARD SHORTCUT INTERCEPTOR ---
+            const shortcutRaw = window.OPUcConfig.settings.uploadShortcut || 'Alt+V';
+            const shortcut = shortcutRaw.toLowerCase().replace(/\s/g, '');
+
+            if (shortcut === 'ctrl+v') {
+                // NATIVE PASTE EVENT (Legacy Behavior)
                 dom.textArea.addEventListener('paste', (e) => {
                     const clipboard = e.clipboardData || window.clipboardData;
                     if (!clipboard || !clipboard.items) return;
@@ -33,7 +25,7 @@
                         if (item.type.indexOf('image') !== -1) {
                             const blob = item.getAsFile();
                             if (blob) {
-                                e.preventDefault(); // Stop browser from pasting text/image into textarea natively
+                                e.preventDefault(); 
                                 filesToProcess.push(blob);
                             }
                         }
@@ -44,25 +36,65 @@
                         window.OPUcCore.handleIncomingFiles(filesToProcess);
                     }
                 });
+            } else if (shortcut !== '' && shortcut !== 'none') {
+                // ASYNC CLIPBOARD API FOR CUSTOM HOTKEYS (e.g., Alt+V)
+                const keys = shortcut.split('+');
+                const reqCtrl = keys.includes('ctrl');
+                const reqAlt = keys.includes('alt');
+                const reqShift = keys.includes('shift');
+                const reqKey = keys[keys.length - 1];
+
+                dom.textArea.addEventListener('keydown', async (e) => {
+                    // Match the custom key combo exactly
+                    if (e.ctrlKey === reqCtrl && e.altKey === reqAlt && e.shiftKey === reqShift && e.key.toLowerCase() === reqKey) {
+                        e.preventDefault();
+                        if (window.OPUcLog) window.OPUcLog.debug(`Custom shortcut ${shortcut} pressed. Reading clipboard...`);
+                        
+                        try {
+                            const clipboardItems = await navigator.clipboard.read();
+                            const files = [];
+                            
+                            for (const item of clipboardItems) {
+                                const imageTypes = item.types.filter(type => type.startsWith('image/'));
+                                for (const type of imageTypes) {
+                                    const blob = await item.getType(type);
+                                    // Create a generic filename and convert Blob to File
+                                    files.push(new File([blob], `clipboard_${Date.now()}.${type.split('/')[1]}`, { type }));
+                                }
+                            }
+                            
+                            if (files.length > 0) {
+                                window.OPUcCore.handleIncomingFiles(files);
+                            } else {
+                                if (window.OPUcLog) window.OPUcLog.warn("No images found in clipboard.");
+                            }
+                        } catch (err) {
+                            if (window.OPUcLog) window.OPUcLog.error("Clipboard API access denied.", err);
+                            // Fallback toast alert
+                            const t = document.createElement('div');
+                            t.innerText = "Browser requires clipboard permission for custom shortcuts.";
+                            t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#F44336;color:#fff;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
+                            document.body.appendChild(t);
+                            setTimeout(()=>t.remove(), 3500);
+                        }
+                    }
+                });
             }
 
             // --- DRAG & DROP INTERCEPTOR ---
             if (window.OPUcConfig.settings.interceptDrop) {
-                // Visual feedback when dragging over
                 dom.textArea.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     dom.textArea.classList.add('opuc-drag-active');
                 });
 
-                // Remove feedback when leaving
                 dom.textArea.addEventListener('dragleave', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     dom.textArea.classList.remove('opuc-drag-active');
                 });
 
-                // Catch the drop
                 dom.textArea.addEventListener('drop', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -73,8 +105,6 @@
                         if (files.length > 0) {
                             if (window.OPUcLog) window.OPUcLog.info(`Intercepted ${files.length} dropped image(s).`);
                             window.OPUcCore.handleIncomingFiles(files);
-                        } else {
-                            if (window.OPUcLog) window.OPUcLog.warn("Dropped files were not images.");
                         }
                     }
                 });
