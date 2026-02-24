@@ -25,21 +25,12 @@
             stagingArea.appendChild(stagingControls);
             dom.textArea.parentNode.insertBefore(stagingArea, dom.textArea);
 
-            // 2. Build & Inject Main Button
+            // 2. Build & Inject Main Button (Silent & Native Look)
             const opucBtn = document.createElement('button');
             opucBtn.id = 'opuc-main-btn';
             opucBtn.type = 'button';
-            
-            // ANON MODE STYLING
-            if (isLoggedIn) {
-                opucBtn.innerHTML = '⚙️ OPUc';
-                opucBtn.title = 'Left Click: Add File | Right Click: Menu';
-            } else {
-                opucBtn.innerHTML = '⚠️ OPUc (Anon)';
-                opucBtn.title = 'Anon Mode: Limit 1 File | Right Click: Menu';
-                opucBtn.style.backgroundColor = '#8B0000'; // Dark Red Warning
-                opucBtn.style.color = '#fff';
-            }
+            opucBtn.innerHTML = 'OPUc';
+            opucBtn.title = 'Left Click: Add File | Right Click: Menu';
             
             opucBtn.style.position = 'relative'; 
             opucBtn.style.userSelect = 'none';
@@ -99,6 +90,7 @@
                 if (isDisabled) {
                     item.style.opacity = '0.4';
                     item.style.cursor = 'not-allowed';
+                    item.title = "Requires OPU login";
                     item.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
                 } else {
                     item.onmouseover = () => item.style.background = 'rgba(255, 152, 0, 0.2)';
@@ -113,7 +105,7 @@
                 return item;
             };
 
-            // ANON MODE RESTRICTION: Disable Gallery access
+            // Gallery is visually restricted but doesn't shout at the user
             menu.appendChild(createItem('🖼️', 'Gallery', () => {
                 if (window.OPUcGallery) window.OPUcGallery.open();
             }, !isLoggedIn));
