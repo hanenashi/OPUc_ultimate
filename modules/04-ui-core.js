@@ -44,7 +44,7 @@
             opucBtn.style.userSelect = 'none';
             opucBtn.style.webkitUserSelect = 'none';
             opucBtn.style.touchAction = 'manipulation';
-            opucBtn.style.transition = 'background-image 0.2s linear'; // Smooth progress bar animation
+            opucBtn.style.transition = 'background-image 0.2s linear'; 
             
             innerSpan.appendChild(opucBtn);
             outerSpan.appendChild(innerSpan);
@@ -73,14 +73,12 @@
             });
         },
 
-        // --- THE PROGRESS BAR API ---
         setWorkingState: function(cancelCb) {
             this.isWorking = true;
             this.cancelCallback = cancelCb;
             const btn = document.getElementById('opuc-main-btn');
             if (btn) {
                 btn.innerHTML = '✖ Cancel';
-                // !important overrides the YUI framework sprite sheet
                 btn.style.setProperty('background-image', 'linear-gradient(90deg, #F44336 0%, #aaa 0%)', 'important');
                 btn.style.setProperty('color', '#fff', 'important');
                 btn.style.setProperty('text-shadow', '1px 1px 1px rgba(0,0,0,0.5)', 'important');
@@ -112,8 +110,8 @@
             menu.id = 'opuc-context-menu';
             menu.style.cssText = `
                 display: none; position: absolute; top: 110%; left: 0; 
-                background: var(--opuc-bg-primary, #2b2b2b); border: 1px solid var(--opuc-accent, #FF9800); 
-                border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
+                background: var(--opuc-bg-secondary); border: 1px solid var(--opuc-border); 
+                border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
                 z-index: var(--opuc-z-index-overlay, 2147483647); min-width: 150px; overflow: hidden;
                 font-family: system-ui, -apple-system, Segoe UI, sans-serif;
                 text-align: left;
@@ -123,8 +121,8 @@
                 const item = document.createElement('div');
                 item.innerHTML = `${icon} <span style="margin-left: 8px;">${text}</span>`;
                 item.style.cssText = `
-                    padding: 10px 15px; cursor: pointer; color: var(--opuc-text-main, #fff); 
-                    font-size: 14px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05);
+                    padding: 10px 15px; cursor: pointer; color: var(--opuc-text-main); 
+                    font-size: 14px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05);
                 `;
                 
                 if (isDisabled) {
@@ -161,14 +159,11 @@
         attachButtonEvents: function(btn, wrapperElement, fileInput) {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-
-                // If currently working (leeching/uploading), act as a Cancel button
                 if (this.isWorking && this.cancelCallback) {
                     this.cancelCallback();
                     this.resetButtonState();
                     return;
                 }
-
                 const menu = document.getElementById('opuc-context-menu');
                 if (menu && menu.style.display === 'block') {
                     menu.style.display = 'none';
@@ -180,19 +175,11 @@
 
             btn.addEventListener('contextmenu', (e) => {
                 e.preventDefault(); e.stopPropagation();
-                if (this.isWorking) return; // Disable menu while working
+                if (this.isWorking) return; 
                 if (window.getSelection) window.getSelection().removeAllRanges();
                 const menu = document.getElementById('opuc-context-menu');
                 if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
             });
-        },
-
-        toggleStaging: function(forceState = null) {
-            const stagingArea = document.getElementById('opuc-staging-area');
-            if (!stagingArea) return;
-            const isEnabled = forceState !== null ? forceState : window.OPUcConfig.settings.stagingEnabled;
-            if (isEnabled) stagingArea.classList.add('active');
-            else stagingArea.classList.remove('active');
         }
     };
 })();
