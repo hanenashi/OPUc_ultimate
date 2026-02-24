@@ -66,8 +66,14 @@
                     const row = document.createElement('div');
                     row.style.cssText = 'display: flex; flex-direction: column; gap: 5px; font-size: 14px;';
                     const currentVal = window.OPUcConfig.get(id, defaultVal);
+                    
+                    // FIX: Create the input without a hardcoded value string to prevent HTML escaping breaks
                     row.innerHTML = `<span>${label} <small style="color:#aaa;">(Use <b>%url%</b> as placeholder)</small></span> 
-                                     <input type="text" id="${id}" value="${currentVal}" style="padding: 8px; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; outline: none; font-family: monospace;">`;
+                                     <input type="text" id="${id}" style="padding: 8px; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; outline: none; font-family: monospace;">`;
+                    
+                    // Safely assign the value directly to the DOM element
+                    row.querySelector('input').value = currentVal;
+                    
                     return row;
                 };
 
@@ -109,7 +115,6 @@
         },
 
         saveAndClose: function() {
-            // Read and save all inputs
             window.OPUcConfig.set('opuc_staging_enabled', document.getElementById('opuc_staging_enabled').checked);
             window.OPUcConfig.set('opuc_intercept_paste', document.getElementById('opuc_intercept_paste').checked);
             window.OPUcConfig.set('opuc_intercept_drop', document.getElementById('opuc_intercept_drop').checked);
@@ -118,7 +123,6 @@
 
             if (window.OPUcLog) window.OPUcLog.info("Settings saved successfully.");
             
-            // Instantly apply visual staging toggle if needed
             if (window.OPUcUI) window.OPUcUI.toggleStaging(document.getElementById('opuc_staging_enabled').checked);
 
             this.close();
