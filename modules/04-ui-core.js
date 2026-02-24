@@ -17,12 +17,10 @@
             const stagingArea = document.createElement('div');
             stagingArea.id = 'opuc-staging-area';
             
-            // Container for the thumbnails
             const stagingItems = document.createElement('div');
             stagingItems.id = 'opuc-staging-items';
             stagingItems.style.cssText = 'display: flex; gap: 10px; flex-wrap: wrap; width: 100%;';
             
-            // Container for Staging Controls (Upload All button)
             const stagingControls = document.createElement('div');
             stagingControls.id = 'opuc-staging-controls';
             stagingControls.style.cssText = 'width: 100%; display: flex; justify-content: flex-end; margin-top: 8px; border-top: 1px dashed var(--opuc-border); padding-top: 8px; display: none;';
@@ -36,7 +34,7 @@
             opucBtn.id = 'opuc-main-btn';
             opucBtn.type = 'button';
             opucBtn.innerHTML = '⚙️ OPUc';
-            opucBtn.title = 'Left Click: Add File | Right Click: OPUc Menu';
+            opucBtn.title = 'Left Click: Add File | Right Click: Gallery';
             dom.toolsRow.appendChild(opucBtn);
 
             // 3. Build Hidden File Input for the OS Picker
@@ -50,13 +48,12 @@
             // 4. Attach Event Listeners
             this.attachButtonEvents(opucBtn, fileInput);
             
-            // Listen for OS File Picker selections
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files && e.target.files.length > 0) {
                     if (window.OPUcLog) window.OPUcLog.info(`OS Picker caught ${e.target.files.length} file(s).`);
                     window.OPUcCore.handleIncomingFiles(e.target.files);
                 }
-                fileInput.value = ''; // Reset input so the same file can be picked again if needed
+                fileInput.value = ''; 
             });
         },
 
@@ -73,11 +70,16 @@
                 }
             });
 
-            // RIGHT CLICK -> Context Menu (Stub for Phase 6)
+            // RIGHT CLICK / LONG PRESS -> Open Gallery
             btn.addEventListener('contextmenu', (e) => {
-                e.preventDefault(); 
-                if (window.OPUcLog) window.OPUcLog.debug("OPUc Button Right-Clicked. Opening Context Menu.");
-                alert("OPUc Context Menu will open here! (Gallery, Settings)");
+                e.preventDefault(); // Crucial for stopping the native browser menu on mobile long-press
+                if (window.OPUcLog) window.OPUcLog.debug("OPUc Button Right-Clicked. Opening Gallery.");
+                
+                if (window.OPUcGallery) {
+                    window.OPUcGallery.open();
+                } else {
+                    if (window.OPUcLog) window.OPUcLog.error("Gallery module is not loaded!");
+                }
             });
         },
 
