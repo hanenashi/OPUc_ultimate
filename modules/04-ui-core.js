@@ -5,8 +5,9 @@
     window.OPUcUI = {
         inject: function() {
             const dom = window.OPUcConfig.dom;
-
             if (!dom.form || !dom.textArea || !dom.toolsRow) return;
+
+            const isLoggedIn = window.OPUcConfig.state.isLoggedIn;
 
             // 1. Build & Inject Staging Area
             const stagingArea = document.createElement('div');
@@ -28,8 +29,17 @@
             const opucBtn = document.createElement('button');
             opucBtn.id = 'opuc-main-btn';
             opucBtn.type = 'button';
-            opucBtn.innerHTML = '⚙️ OPUc';
-            opucBtn.title = 'Left Click: Add File | Right Click: Menu';
+            
+            // ANON MODE STYLING
+            if (isLoggedIn) {
+                opucBtn.innerHTML = '⚙️ OPUc';
+                opucBtn.title = 'Left Click: Add File | Right Click: Menu';
+            } else {
+                opucBtn.innerHTML = '⚠️ OPUc (Anon)';
+                opucBtn.title = 'Anon Mode: Limit 1 File | Right Click: Menu';
+                opucBtn.style.backgroundColor = '#8B0000'; // Dark Red Warning
+                opucBtn.style.color = '#fff';
+            }
             
             opucBtn.style.position = 'relative'; 
             opucBtn.style.userSelect = 'none';
@@ -41,13 +51,16 @@
             // 3. Build Hidden File Input
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
-            fileInput.multiple = true;
             fileInput.accept = 'image/*';
             fileInput.style.display = 'none';
+            
+            // ANON MODE RESTRICTION: Disable OS multi-select if logged out
+            fileInput.multiple = isLoggedIn; 
+            
             document.body.appendChild(fileInput);
 
             // 4. Build Context Menu
-            this.buildContextMenu(opucBtn);
+            this.buildContextMenu(opucBtn, isLoggedIn);
 
             // 5. Attach Event Listeners
             this.attachButtonEvents(opucBtn, fileInput);
@@ -65,7 +78,7 @@
             });
         },
 
-        buildContextMenu: function(parentBtn) {
+        buildContextMenu: function(parentBtn, isLoggedIn) {
             const menu = document.createElement('div');
             menu.id = 'opuc-context-menu';
             menu.style.cssText = `
@@ -75,28 +88,35 @@
                 z-index: var(--opuc-z-index-overlay, 2147483647); min-width: 150px; overflow: hidden;
             `;
 
-            const createItem = (icon, text, onClick) => {
+            const createItem = (icon, text, onClick, isDisabled = false) => {
                 const item = document.createElement('div');
                 item.innerHTML = `${icon} <span style="margin-left: 8px;">${text}</span>`;
                 item.style.cssText = `
                     padding: 10px 15px; cursor: pointer; color: var(--opuc-text-main, #fff); 
                     font-size: 14px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05);
                 `;
-                item.onmouseover = () => item.style.background = 'rgba(255, 152, 0, 0.2)';
-                item.onmouseout = () => item.style.background = 'transparent';
                 
-                item.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation(); // <-- THE FIX: Stops the click from firing the file picker
-                    menu.style.display = 'none';
-                    onClick();
-                };
+                if (isDisabled) {
+                    item.style.opacity = '0.4';
+                    item.style.cursor = 'not-allowed';
+                    item.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
+                } else {
+                    item.onmouseover = () => item.style.background = 'rgba(255, 152, 0, 0.2)';
+                    item.onmouseout = () => item.style.background = 'transparent';
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation(); 
+                        menu.style.display = 'none';
+                        onClick();
+                    };
+                }
                 return item;
             };
 
+            // ANON MODE RESTRICTION: Disable Gallery access
             menu.appendChild(createItem('🖼️', 'Gallery', () => {
                 if (window.OPUcGallery) window.OPUcGallery.open();
-            }));
+            }, !isLoggedIn));
 
             menu.appendChild(createItem('⏸️', 'Toggle Staging', () => {
                 const current = window.OPUcConfig.settings.stagingEnabled;
@@ -109,12 +129,9 @@
                 setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
             }));
 
-            // In modules/04-ui-core.js inside buildContextMenu()
             menu.appendChild(createItem('⚙️', 'Settings', () => {
                 if (window.OPUcSettings) window.OPUcSettings.open();
-                else alert("Settings module not loaded!");
             }));
-            
 
             parentBtn.appendChild(menu);
         },
