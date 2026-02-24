@@ -109,9 +109,12 @@
                 setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
             }));
 
+            // In modules/04-ui-core.js inside buildContextMenu()
             menu.appendChild(createItem('⚙️', 'Settings', () => {
-                alert("Settings Module Coming Next!");
+                if (window.OPUcSettings) window.OPUcSettings.open();
+                else alert("Settings module not loaded!");
             }));
+            
 
             parentBtn.appendChild(menu);
         },
