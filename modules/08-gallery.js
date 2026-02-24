@@ -7,6 +7,7 @@
         isLoading: false,
         hasMore: true,
         selectedImages: new Set(),
+        observer: null,
 
         open: function() {
             if (window.OPUcLog) window.OPUcLog.info("Opening OPUc Gallery Overlay...");
@@ -44,15 +45,13 @@
                 grid.id = 'opuc-gallery-grid';
                 grid.style.cssText = 'flex: 1; overflow-y: auto; padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; align-content: start;';
                 
-                // FIX: Mobile-friendly Infinite Scroll calculation
-                grid.addEventListener('scroll', () => {
-                    const scrollPos = grid.scrollTop + grid.clientHeight;
-                    const scrollBottom = grid.scrollHeight;
-                    // Trigger when within 300px of the bottom
-                    if (scrollPos >= scrollBottom - 300) {
+                // THE FIX: Intersection Observer instead of buggy scroll math
+                this.observer = new IntersectionObserver((entries) => {
+                    if (entries[0].isIntersecting && !this.isLoading && this.hasMore) {
+                        if (window.OPUcLog) window.OPUcLog.debug("Sentinel reached. Fetching next page...");
                         this.fetchPage(this.currentPage + 1);
                     }
-                });
+                }, { root: grid, rootMargin: '300px' });
 
                 const footer = document.createElement('div');
                 footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
@@ -80,7 +79,6 @@
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
 
-            // Reset and fetch if opening fresh
             if (document.getElementById('opuc-gallery-grid').innerHTML === '') {
                 this.currentPage = 1;
                 this.hasMore = true;
@@ -99,7 +97,6 @@
         },
 
         fetchPage: function(pageNum) {
-            // FIX: Don't fetch if already loading or if we hit the end of history
             if (this.isLoading || !this.hasMore) return;
             
             this.isLoading = true;
@@ -131,7 +128,6 @@
             const boxes = doc.querySelectorAll('.box a.swipebox, .boxtop a.swipebox'); 
             const grid = document.getElementById('opuc-gallery-grid');
 
-            // FIX: If no more images are found, set hasMore to false so we stop firing network requests
             if (boxes.length === 0) {
                 if (window.OPUcLog) window.OPUcLog.debug("Reached end of gallery history.");
                 this.hasMore = false;
@@ -148,7 +144,6 @@
                 wrapper.style.cssText = 'width: 100%; aspect-ratio: 1; border: 2px solid transparent; border-radius: 4px; overflow: hidden; cursor: pointer; transition: transform 0.1s; background: #000;';
                 
                 const img = document.createElement('img');
-                // Lazy load the images within the grid for extra performance
                 img.loading = 'lazy'; 
                 img.src = thumbUrl;
                 img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; opacity: 0.8; pointer-events: none;';
@@ -158,6 +153,18 @@
                 wrapper.appendChild(img);
                 grid.appendChild(wrapper);
             });
+
+            // Re-append the sentinel at the very bottom
+            let sentinel = document.getElementById('opuc-gallery-sentinel');
+            if (!sentinel) {
+                sentinel = document.createElement('div');
+                sentinel.id = 'opuc-gallery-sentinel';
+                sentinel.style.cssText = 'grid-column: 1 / -1; height: 1px; width: 100%;';
+                grid.appendChild(sentinel);
+                if (this.observer) this.observer.observe(sentinel);
+            } else {
+                grid.appendChild(sentinel);
+            }
         },
 
         toggleSelection: function(wrapper, url, img) {
@@ -182,12 +189,8 @@
 
         insertSelected: function() {
             if (this.selectedImages.size === 0) return;
-            if (window.OPUcLog) window.OPUcLog.info(`Inserting ${this.selectedImages.size} image(s) from gallery.`);
-
             if (window.OPUcAPI && window.OPUcAPI.injectIntoOkoun) {
-                this.selectedImages.forEach(url => {
-                    window.OPUcAPI.injectIntoOkoun(url);
-                });
+                this.selectedImages.forEach(url => window.OPUcAPI.injectIntoOkoun(url));
             }
             this.close();
         }
