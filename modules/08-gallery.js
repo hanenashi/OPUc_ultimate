@@ -5,16 +5,15 @@
     window.OPUcGallery = {
         currentPage: 1,
         isLoading: false,
-        selectedImages: new Set(), // Keeps track of multi-select
+        hasMore: true,
+        selectedImages: new Set(),
 
-        // 1. Build and Open the Overlay
         open: function() {
             if (window.OPUcLog) window.OPUcLog.info("Opening OPUc Gallery Overlay...");
             
             let modal = document.getElementById('opuc-gallery-modal');
             
             if (!modal) {
-                // Create the modal if it doesn't exist
                 modal = document.createElement('div');
                 modal.id = 'opuc-gallery-modal';
                 modal.style.cssText = `
@@ -31,7 +30,6 @@
                     display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
                 `;
 
-                // Header
                 const header = document.createElement('div');
                 header.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
                 header.innerHTML = '<b style="color: var(--opuc-text-main, #fff); font-size: 18px;">🖼️ OPUc Gallery</b>';
@@ -42,19 +40,20 @@
                 closeBtn.onclick = () => this.close();
                 header.appendChild(closeBtn);
 
-                // Grid Container
                 const grid = document.createElement('div');
                 grid.id = 'opuc-gallery-grid';
-                grid.style.cssText = 'flex: 1; overflow-y: auto; padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; align-content: start;';
+                grid.style.cssText = 'flex: 1; overflow-y: auto; padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; align-content: start;';
                 
-                // Infinite Scroll Listener
+                // FIX: Mobile-friendly Infinite Scroll calculation
                 grid.addEventListener('scroll', () => {
-                    if (grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 200) {
+                    const scrollPos = grid.scrollTop + grid.clientHeight;
+                    const scrollBottom = grid.scrollHeight;
+                    // Trigger when within 300px of the bottom
+                    if (scrollPos >= scrollBottom - 300) {
                         this.fetchPage(this.currentPage + 1);
                     }
                 });
 
-                // Footer Actions
                 const footer = document.createElement('div');
                 footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
                 
@@ -79,11 +78,12 @@
             }
 
             modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden'; // Prevent Okoun from scrolling behind modal
+            document.body.style.overflow = 'hidden';
 
-            // Fetch the first page if grid is empty
+            // Reset and fetch if opening fresh
             if (document.getElementById('opuc-gallery-grid').innerHTML === '') {
                 this.currentPage = 1;
+                this.hasMore = true;
                 this.fetchPage(1);
             }
         },
@@ -93,33 +93,29 @@
             if (modal) modal.style.display = 'none';
             document.body.style.overflow = '';
             
-            // Clear selections on close
             this.selectedImages.clear();
             this.updateStatus();
             document.querySelectorAll('.opuc-gallery-item').forEach(el => el.style.border = '2px solid transparent');
         },
 
-        // 2. Fetch from OPU API
         fetchPage: function(pageNum) {
-            if (this.isLoading) return;
+            // FIX: Don't fetch if already loading or if we hit the end of history
+            if (this.isLoading || !this.hasMore) return;
+            
             this.isLoading = true;
             this.currentPage = pageNum;
 
             if (window.OPUcLog) window.OPUcLog.debug(`Fetching OPU gallery page ${pageNum}...`);
 
-            const url = `${window.OPUcConfig.api.gallery}&recordStart=${pageNum}`;
-
             GM_xmlhttpRequest({
                 method: 'GET',
-                url: url,
+                url: `${window.OPUcConfig.api.gallery}&recordStart=${pageNum}`,
                 onload: (response) => {
                     if (response.finalUrl.includes('page=prihlaseni')) {
                         if (window.OPUcLog) window.OPUcLog.error("Not logged in to OPU.");
-                        alert("Please log in to opu.peklo.biz first.");
                         this.close();
                         return;
                     }
-
                     this.parseHTMLAndRender(response.responseText);
                     this.isLoading = false;
                 },
@@ -130,20 +126,20 @@
             });
         },
 
-        // 3. Extract Images & Render
         parseHTMLAndRender: function(htmlString) {
             const doc = new DOMParser().parseFromString(htmlString, 'text/html');
-            const boxes = doc.querySelectorAll('.box a.swipebox, .boxtop a.swipebox'); // Targeting OPU's native gallery structure
+            const boxes = doc.querySelectorAll('.box a.swipebox, .boxtop a.swipebox'); 
             const grid = document.getElementById('opuc-gallery-grid');
 
+            // FIX: If no more images are found, set hasMore to false so we stop firing network requests
             if (boxes.length === 0) {
-                if (window.OPUcLog) window.OPUcLog.debug("No more images found.");
+                if (window.OPUcLog) window.OPUcLog.debug("Reached end of gallery history.");
+                this.hasMore = false;
                 return;
             }
 
             boxes.forEach(a => {
                 const fullUrl = a.href;
-                // Try to grab the thumbnail, fallback to full image if missing
                 const imgNode = a.querySelector('img');
                 const thumbUrl = imgNode ? imgNode.src : fullUrl;
 
@@ -152,8 +148,10 @@
                 wrapper.style.cssText = 'width: 100%; aspect-ratio: 1; border: 2px solid transparent; border-radius: 4px; overflow: hidden; cursor: pointer; transition: transform 0.1s; background: #000;';
                 
                 const img = document.createElement('img');
+                // Lazy load the images within the grid for extra performance
+                img.loading = 'lazy'; 
                 img.src = thumbUrl;
-                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; opacity: 0.8;';
+                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; opacity: 0.8; pointer-events: none;';
 
                 wrapper.onclick = () => this.toggleSelection(wrapper, fullUrl, img);
                 
@@ -162,7 +160,6 @@
             });
         },
 
-        // 4. Multi-Select Logic
         toggleSelection: function(wrapper, url, img) {
             if (this.selectedImages.has(url)) {
                 this.selectedImages.delete(url);
@@ -183,21 +180,15 @@
             if (status) status.innerText = `${this.selectedImages.size} selected`;
         },
 
-        // 5. Inject to Okoun
         insertSelected: function() {
             if (this.selectedImages.size === 0) return;
-
             if (window.OPUcLog) window.OPUcLog.info(`Inserting ${this.selectedImages.size} image(s) from gallery.`);
 
-            // Ensure the API module is available to handle formatting/injection
             if (window.OPUcAPI && window.OPUcAPI.injectIntoOkoun) {
                 this.selectedImages.forEach(url => {
                     window.OPUcAPI.injectIntoOkoun(url);
                 });
-            } else {
-                if (window.OPUcLog) window.OPUcLog.error("OPUcAPI module not found! Cannot inject.");
             }
-
             this.close();
         }
     };
