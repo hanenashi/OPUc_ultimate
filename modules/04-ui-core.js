@@ -3,6 +3,9 @@
     'use strict';
 
     window.OPUcUI = {
+        isWorking: false,
+        cancelCallback: null,
+
         inject: function() {
             const dom = window.OPUcConfig.dom;
             if (!dom.form || !dom.textArea || !dom.toolsRow) return;
@@ -24,10 +27,9 @@
             stagingArea.appendChild(stagingControls);
             dom.textArea.parentNode.insertBefore(stagingArea, dom.textArea);
 
-            // --- NATIVE OKOUN BUTTON CLONE (YUI Framework Wrapper) ---
             const outerSpan = document.createElement('span');
             outerSpan.className = 'yui-button yui-submit-button default';
-            outerSpan.style.position = 'relative'; // Required to anchor our context menu
+            outerSpan.style.position = 'relative'; 
 
             const innerSpan = document.createElement('span');
             innerSpan.className = 'first-child';
@@ -42,8 +44,8 @@
             opucBtn.style.userSelect = 'none';
             opucBtn.style.webkitUserSelect = 'none';
             opucBtn.style.touchAction = 'manipulation';
+            opucBtn.style.transition = 'background-image 0.2s linear'; // Smooth progress bar animation
             
-            // Assemble the YUI sandwich
             innerSpan.appendChild(opucBtn);
             outerSpan.appendChild(innerSpan);
             dom.toolsRow.appendChild(outerSpan);
@@ -55,7 +57,6 @@
             fileInput.multiple = isLoggedIn; 
             document.body.appendChild(fileInput);
 
-            // Attach the menu to the outer wrapper so it doesn't break button HTML standards
             this.buildContextMenu(outerSpan, isLoggedIn);
             this.attachButtonEvents(opucBtn, outerSpan, fileInput);
             
@@ -70,6 +71,40 @@
                     menu.style.display = 'none';
                 }
             });
+        },
+
+        // --- THE PROGRESS BAR API ---
+        setWorkingState: function(cancelCb) {
+            this.isWorking = true;
+            this.cancelCallback = cancelCb;
+            const btn = document.getElementById('opuc-main-btn');
+            if (btn) {
+                btn.innerHTML = '✖ Cancel';
+                // !important overrides the YUI framework sprite sheet
+                btn.style.setProperty('background-image', 'linear-gradient(90deg, #F44336 0%, #aaa 0%)', 'important');
+                btn.style.setProperty('color', '#fff', 'important');
+                btn.style.setProperty('text-shadow', '1px 1px 1px rgba(0,0,0,0.5)', 'important');
+            }
+        },
+
+        updateProgress: function(completed, total) {
+            const btn = document.getElementById('opuc-main-btn');
+            if (btn && this.isWorking) {
+                const pct = Math.round((completed / total) * 100);
+                btn.style.setProperty('background-image', `linear-gradient(90deg, #F44336 ${pct}%, #aaa ${pct}%)`, 'important');
+            }
+        },
+
+        resetButtonState: function() {
+            this.isWorking = false;
+            this.cancelCallback = null;
+            const btn = document.getElementById('opuc-main-btn');
+            if (btn) {
+                btn.innerHTML = 'OPUc';
+                btn.style.removeProperty('background-image');
+                btn.style.removeProperty('color');
+                btn.style.removeProperty('text-shadow');
+            }
         },
 
         buildContextMenu: function(wrapperElement, isLoggedIn) {
@@ -95,14 +130,12 @@
                 if (isDisabled) {
                     item.style.opacity = '0.4';
                     item.style.cursor = 'not-allowed';
-                    item.title = "Requires OPU login";
                     item.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
                 } else {
                     item.onmouseover = () => item.style.background = 'rgba(255, 152, 0, 0.2)';
                     item.onmouseout = () => item.style.background = 'transparent';
                     item.onclick = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation(); 
+                        e.preventDefault(); e.stopPropagation(); 
                         menu.style.display = 'none';
                         onClick();
                     };
@@ -110,24 +143,17 @@
                 return item;
             };
 
-            menu.appendChild(createItem('🖼️', 'Gallery', () => {
-                if (window.OPUcGallery) window.OPUcGallery.open();
-            }, !isLoggedIn));
-
+            menu.appendChild(createItem('🖼️', 'Gallery', () => { if (window.OPUcGallery) window.OPUcGallery.open(); }, !isLoggedIn));
             menu.appendChild(createItem('⏸️', 'Toggle Staging', () => {
                 const current = window.OPUcConfig.settings.stagingEnabled;
                 window.OPUcConfig.set('opuc_staging_enabled', !current);
-                
                 const toast = document.createElement('div');
                 toast.innerText = `Staging ${!current ? 'ON' : 'OFF'}`;
                 toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--opuc-accent, #FF9800); color:#000; padding:8px 16px; border-radius:20px; z-index:999999; font-weight:bold; transition:opacity 0.3s; pointer-events:none;';
                 document.body.appendChild(toast);
                 setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
             }));
-
-            menu.appendChild(createItem('⚙️', 'Settings', () => {
-                if (window.OPUcSettings) window.OPUcSettings.open();
-            }));
+            menu.appendChild(createItem('⚙️', 'Settings', () => { if (window.OPUcSettings) window.OPUcSettings.open(); }));
 
             wrapperElement.appendChild(menu);
         },
@@ -135,6 +161,14 @@
         attachButtonEvents: function(btn, wrapperElement, fileInput) {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
+
+                // If currently working (leeching/uploading), act as a Cancel button
+                if (this.isWorking && this.cancelCallback) {
+                    this.cancelCallback();
+                    this.resetButtonState();
+                    return;
+                }
+
                 const menu = document.getElementById('opuc-context-menu');
                 if (menu && menu.style.display === 'block') {
                     menu.style.display = 'none';
@@ -145,10 +179,9 @@
             });
 
             btn.addEventListener('contextmenu', (e) => {
-                e.preventDefault(); 
-                e.stopPropagation();
+                e.preventDefault(); e.stopPropagation();
+                if (this.isWorking) return; // Disable menu while working
                 if (window.getSelection) window.getSelection().removeAllRanges();
-                
                 const menu = document.getElementById('opuc-context-menu');
                 if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
             });
