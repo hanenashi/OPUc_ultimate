@@ -5,6 +5,40 @@
     window.OPUcCore = window.OPUcCore || {};
     window.OPUcCore.activeLeechRequests = []; 
 
+    // --- URL LEECHER ---
+    window.OPUcCore.leechUrl = function(url) {
+        if (window.OPUcLog) window.OPUcLog.info(`Leeching image from URL: ${url}`);
+        
+        window.OPUcRequest({
+            method: 'GET',
+            url: url,
+            responseType: 'blob',
+            onload: function(res) {
+                if (res.status === 200 && res.response instanceof Blob) {
+                    let ext = 'png';
+                    const match = url.match(/\.(png|jpe?g|gif|webp|bmp)/i);
+                    if (match) ext = match[1].toLowerCase();
+                    
+                    const fileName = `leeched_${Date.now()}.${ext}`;
+                    const file = new File([res.response], fileName, { type: res.response.type });
+                    
+                    if (window.OPUcLog) window.OPUcLog.info(`Leech successful! Pushing ${fileName} to queue.`);
+                    window.OPUcCore.handleIncomingFiles([file]);
+                } else {
+                    if (window.OPUcLog) window.OPUcLog.error(`Failed to leech URL. HTTP ${res.status}`);
+                    const t = document.createElement('div');
+                    t.innerText = "OPUc: Failed to leech image from URL. Server might be blocking access.";
+                    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#F44336;color:#fff;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
+                    document.body.appendChild(t);
+                    setTimeout(()=>t.remove(), 4000);
+                }
+            },
+            onerror: function(err) {
+                if (window.OPUcLog) window.OPUcLog.error("Network error while leeching URL.", err);
+            }
+        });
+    };
+
     // --- BATCH URL LEECHER ---
     window.OPUcCore.leechUrls = async function(urlsArray) {
         if (urlsArray.length === 0) return;
@@ -16,7 +50,6 @@
 
         if (window.OPUcLog) window.OPUcLog.info(`Starting batch leech of ${total} URLs...`);
 
-        // Turn button into Cancel/Progress bar
         window.OPUcUI.setWorkingState(() => {
             isCancelled = true;
             window.OPUcCore.activeLeechRequests.forEach(abort => abort());
@@ -29,7 +62,7 @@
 
             try {
                 const file = await new Promise((resolve, reject) => {
-                    const req = GM_xmlhttpRequest({
+                    const req = window.OPUcRequest({
                         method: 'GET',
                         url: url,
                         responseType: 'blob',
@@ -46,8 +79,11 @@
                         onerror: (err) => reject(err),
                         onabort: () => reject('ABORTED')
                     });
-                    // Store the abort handle so the Cancel button can kill it mid-download
-                    window.OPUcCore.activeLeechRequests.push(req.abort);
+                    
+                    // GM4 doesn't support aborting natively. If it exists, add it to the kill switch array.
+                    if (req && typeof req.abort === 'function') {
+                        window.OPUcCore.activeLeechRequests.push(req.abort);
+                    }
                 });
                 
                 downloadedFiles.push(file);
@@ -67,10 +103,8 @@
         }
     };
 
-    // --- HELPER: Extract Multiple URLs ---
     const extractImageUrls = (textData, htmlData) => {
         const urls = new Set();
-        // Regex to match URLs ending in common image extensions, ignoring surrounding HTML/Text junk
         const imgRegex = /(?:https?:\/\/)[^\s<>"']+\.(?:png|jpe?g|gif|webp|bmp)(?:\?[^\s<>"']*)?/gi;
 
         if (htmlData) {
@@ -100,7 +134,6 @@
             const shortcutRaw = window.OPUcConfig.settings.uploadShortcut || 'Alt+V';
             const shortcut = shortcutRaw.toLowerCase().replace(/\s/g, '');
 
-            // --- NATIVE PASTE EVENT (Ctrl+V) ---
             dom.textArea.addEventListener('paste', (e) => {
                 const clipboard = e.clipboardData || window.clipboardData;
                 if (!clipboard) return;
@@ -120,7 +153,6 @@
                 }
             });
 
-            // --- ASYNC CLIPBOARD API FOR CUSTOM HOTKEYS (e.g., Alt+V) ---
             if (shortcut !== 'ctrl+v' && shortcut !== '' && shortcut !== 'none') {
                 const keys = shortcut.split('+');
                 const reqCtrl = keys.includes('ctrl');
@@ -176,7 +208,6 @@
                 });
             }
 
-            // --- DRAG & DROP INTERCEPTOR ---
             if (window.OPUcConfig.settings.interceptDrop) {
                 dom.textArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dom.textArea.classList.add('opuc-drag-active'); });
                 dom.textArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dom.textArea.classList.remove('opuc-drag-active'); });
