@@ -2,9 +2,9 @@
 (function() {
     'use strict';
 
-    // --- URL LEECHER ---
-    // If the user pastes a raw URL to an image, download it and convert it to a File object
     window.OPUcCore = window.OPUcCore || {};
+    
+    // --- URL LEECHER ---
     window.OPUcCore.leechUrl = function(url) {
         if (window.OPUcLog) window.OPUcLog.info(`Leeching image from URL: ${url}`);
         
@@ -14,7 +14,11 @@
             responseType: 'blob',
             onload: function(res) {
                 if (res.status === 200 && res.response instanceof Blob) {
-                    const ext = url.split('.').pop().split('?')[0] || 'png';
+                    // Extract extension or fallback to png
+                    let ext = 'png';
+                    const match = url.match(/\.(png|jpe?g|gif|webp|bmp)/i);
+                    if (match) ext = match[1].toLowerCase();
+                    
                     const fileName = `leeched_${Date.now()}.${ext}`;
                     const file = new File([res.response], fileName, { type: res.response.type });
                     
@@ -22,13 +26,38 @@
                     window.OPUcCore.handleIncomingFiles([file]);
                 } else {
                     if (window.OPUcLog) window.OPUcLog.error(`Failed to leech URL. HTTP ${res.status}`);
-                    alert("OPUc: Failed to download the image from the pasted URL.");
+                    // Only show a subtle toast instead of an annoying alert
+                    const t = document.createElement('div');
+                    t.innerText = "OPUc: Failed to leech image from URL. Server might be blocking access.";
+                    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#F44336;color:#fff;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
+                    document.body.appendChild(t);
+                    setTimeout(()=>t.remove(), 4000);
                 }
             },
             onerror: function(err) {
                 if (window.OPUcLog) window.OPUcLog.error("Network error while leeching URL.", err);
             }
         });
+    };
+
+    // --- HELPER: Extract URL from Text or HTML ---
+    const extractImageUrl = (textData, htmlData) => {
+        // 1. Try to find a raw, clean URL in the text
+        if (textData) {
+            const cleanText = textData.trim();
+            if (/^https?:\/\/.*\.(png|jpe?g|gif|webp|bmp)(\?.*)?$/i.test(cleanText)) {
+                return cleanText;
+            }
+        }
+        // 2. Try to parse HTML to find an embedded <img> tag (common when copying from websites)
+        if (htmlData) {
+            const doc = new DOMParser().parseFromString(htmlData, 'text/html');
+            const img = doc.querySelector('img');
+            if (img && img.src && /^https?:\/\//i.test(img.src)) {
+                return img.src;
+            }
+        }
+        return null;
     };
 
     window.OPUcInterceptors = {
@@ -42,7 +71,6 @@
             const shortcut = shortcutRaw.toLowerCase().replace(/\s/g, '');
 
             // --- NATIVE PASTE EVENT (Ctrl+V) ---
-            // Highly reliable for OS Files (File Explorer copies)
             dom.textArea.addEventListener('paste', (e) => {
                 const clipboard = e.clipboardData || window.clipboardData;
                 if (!clipboard) return;
@@ -52,31 +80,30 @@
                     const item = clipboard.items[i];
                     if (item.type.indexOf('image') !== -1) {
                         const blob = item.getAsFile();
-                        if (blob) {
-                            e.preventDefault(); 
-                            filesToProcess.push(blob);
-                        }
+                        if (blob) filesToProcess.push(blob);
                     }
                 }
 
                 if (filesToProcess.length > 0) {
+                    e.preventDefault(); 
                     if (window.OPUcLog) window.OPUcLog.info(`Intercepted ${filesToProcess.length} pasted image(s).`);
                     window.OPUcCore.handleIncomingFiles(filesToProcess);
                 } else {
-                    // Check if it's a URL to an image
-                    const text = clipboard.getData('text');
-                    if (text) {
-                        const cleanText = text.trim();
-                        if (/^https?:\/\/.*\.(png|jpe?g|gif|webp|bmp)(\?.*)?$/i.test(cleanText)) {
-                            e.preventDefault(); // Stop Okoun from pasting the raw text
-                            window.OPUcCore.leechUrl(cleanText);
-                        }
+                    // Check if they pasted an image URL or an HTML image tag
+                    const text = clipboard.getData('text/plain');
+                    const html = clipboard.getData('text/html');
+                    const foundUrl = extractImageUrl(text, html);
+                    
+                    if (foundUrl) {
+                        e.preventDefault(); 
+                        window.OPUcCore.leechUrl(foundUrl);
                     }
+                    // If no image and no URL, we do NOT e.preventDefault(). 
+                    // The browser will natively paste the text exactly as the user intended.
                 }
             });
 
             // --- ASYNC CLIPBOARD API FOR CUSTOM HOTKEYS (e.g., Alt+V) ---
-            // Great for Snipping Tool and Text, but browsers block OS File Explorer copies here
             if (shortcut !== 'ctrl+v' && shortcut !== '' && shortcut !== 'none') {
                 const keys = shortcut.split('+');
                 const reqCtrl = keys.includes('ctrl');
@@ -94,24 +121,43 @@
                             const files = [];
                             
                             for (const item of clipboardItems) {
-                                // Debug log to see exactly what the OS gave the browser
-                                if (window.OPUcLog) window.OPUcLog.debug(`Clipboard item types detected: ${item.types.join(', ')}`);
+                                if (window.OPUcLog) window.OPUcLog.debug(`Clipboard item types detected: [${item.types.join(', ')}]`);
+
+                                // If Chrome hid the OS file completely
+                                if (item.types.length === 0) {
+                                    if (window.OPUcLog) window.OPUcLog.warn("Browser blocked OS File Explorer copy. Prompting user to use Ctrl+V.");
+                                    const t = document.createElement('div');
+                                    t.innerText = "Browser security blocks OS Files here. Please use Ctrl+V.";
+                                    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#FF9800;color:#000;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
+                                    document.body.appendChild(t);
+                                    setTimeout(()=>t.remove(), 4000);
+                                    return;
+                                }
 
                                 const imageTypes = item.types.filter(type => type.startsWith('image/'));
                                 
+                                // 1. Grab raw images if available (Snipping Tool, Web copies)
                                 if (imageTypes.length > 0) {
                                     for (const type of imageTypes) {
                                         const blob = await item.getType(type);
                                         files.push(new File([blob], `clipboard_${Date.now()}.${type.split('/')[1]}`, { type }));
                                     }
-                                } else if (item.types.includes('text/plain')) {
-                                    const textBlob = await item.getType('text/plain');
-                                    const text = await textBlob.text();
-                                    const cleanText = text.trim();
-
-                                    if (/^https?:\/\/.*\.(png|jpe?g|gif|webp|bmp)(\?.*)?$/i.test(cleanText)) {
-                                        window.OPUcCore.leechUrl(cleanText);
-                                        return; // Break out, leeching handles the rest
+                                } else {
+                                    // 2. Hunt for URLs inside Text or HTML
+                                    let textData = '', htmlData = '';
+                                    if (item.types.includes('text/plain')) {
+                                        const textBlob = await item.getType('text/plain');
+                                        textData = await textBlob.text();
+                                    }
+                                    if (item.types.includes('text/html')) {
+                                        const htmlBlob = await item.getType('text/html');
+                                        htmlData = await htmlBlob.text();
+                                    }
+                                    
+                                    const foundUrl = extractImageUrl(textData, htmlData);
+                                    if (foundUrl) {
+                                        window.OPUcCore.leechUrl(foundUrl);
+                                        return; 
                                     }
                                 }
                             }
@@ -131,28 +177,20 @@
             // --- DRAG & DROP INTERCEPTOR ---
             if (window.OPUcConfig.settings.interceptDrop) {
                 dom.textArea.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                    e.preventDefault(); e.stopPropagation();
                     dom.textArea.classList.add('opuc-drag-active');
                 });
-
                 dom.textArea.addEventListener('dragleave', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                    e.preventDefault(); e.stopPropagation();
                     dom.textArea.classList.remove('opuc-drag-active');
                 });
-
                 dom.textArea.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                    e.preventDefault(); e.stopPropagation();
                     dom.textArea.classList.remove('opuc-drag-active');
                     
                     if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                         const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-                        if (files.length > 0) {
-                            if (window.OPUcLog) window.OPUcLog.info(`Intercepted ${files.length} dropped image(s).`);
-                            window.OPUcCore.handleIncomingFiles(files);
-                        }
+                        if (files.length > 0) window.OPUcCore.handleIncomingFiles(files);
                     }
                 });
             }
