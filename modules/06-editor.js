@@ -75,14 +75,18 @@
                 controls.innerHTML = ''; 
                 
                 const uploadBtn = document.createElement('button');
-                uploadBtn.innerHTML = `🚀 Upload All (${activeItems})`;
-                uploadBtn.style.cssText = 'background: var(--opuc-accent); color: #000; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer;';
+                uploadBtn.innerHTML = `Upload All (${activeItems})`; // Emoji removed
+                uploadBtn.style.cssText = 'background: var(--opuc-accent); color: #000; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background-image 0.2s linear;';
                 
                 uploadBtn.onclick = async (e) => {
                     e.preventDefault();
-                    uploadBtn.innerHTML = 'Uploading...';
-                    uploadBtn.disabled = true;
-                    await this.flushQueue();
+                    if (this.isUploading) {
+                        // User clicked Cancel while it was uploading
+                        this.isUploading = false; 
+                        if (window.OPUcLog) window.OPUcLog.warn("Batch upload aborted by user.");
+                        return;
+                    }
+                    await this.flushQueue(uploadBtn, activeItems);
                 };
                 
                 controls.appendChild(uploadBtn);
@@ -92,18 +96,17 @@
             }
         },
 
-        flushQueue: async function() {
+        flushQueue: async function(uploadBtn, itemsToUpload) {
             if (window.OPUcLog) window.OPUcLog.info("Flushing staging queue to API...");
             
             this.isUploading = true;
             let completed = 0;
-            const itemsToUpload = this.queue.filter(f => f !== null).length;
 
-            // Turn button into Cancel/Progress bar
-            window.OPUcUI.setWorkingState(() => {
-                this.isUploading = false; // Flag triggers loop break
-                if (window.OPUcLog) window.OPUcLog.warn("Batch upload aborted by user.");
-            });
+            // Turn Upload button into Cancel/Progress bar
+            uploadBtn.innerHTML = '✖ Cancel';
+            uploadBtn.style.setProperty('background-image', 'linear-gradient(90deg, #F44336 0%, #aaa 0%)', 'important');
+            uploadBtn.style.setProperty('color', '#fff', 'important');
+            uploadBtn.style.setProperty('text-shadow', '1px 1px 1px rgba(0,0,0,0.5)', 'important');
 
             for (let i = 0; i < this.queue.length; i++) {
                 if (!this.isUploading) break; // User clicked Cancel
@@ -114,8 +117,13 @@
                         await window.OPUcAPI.upload(file);
                         const visualItem = document.querySelector(`div[data-index="${i}"]`);
                         if (visualItem) visualItem.style.opacity = '0.3'; 
+                        
+                        // Set to null so it doesn't get re-uploaded if the batch is cancelled
+                        this.queue[i] = null; 
+
                         completed++;
-                        window.OPUcUI.updateProgress(completed, itemsToUpload);
+                        const pct = Math.round((completed / itemsToUpload) * 100);
+                        uploadBtn.style.setProperty('background-image', `linear-gradient(90deg, #F44336 ${pct}%, #aaa ${pct}%)`, 'important');
                     } catch (err) {}
                 }
             }
@@ -131,8 +139,7 @@
             }
             
             this.isUploading = false;
-            window.OPUcUI.resetButtonState();
-            this.refreshControls();
+            this.refreshControls(); // Re-draws the button or hides the staging area
         }
     };
 
