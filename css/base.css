@@ -1,0 +1,46 @@
+/* css/base.css */
+
+/* The Main Injection Button */
+#opuc-main-btn {
+    background-color: var(--opuc-accent);
+    color: #fff;
+    border: 1px solid var(--opuc-border);
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: var(--opuc-radius);
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background-color 0.2s ease;
+}
+
+#opuc-main-btn:hover {
+    background-color: var(--opuc-accent-hover);
+}
+
+/* Staging Area Ribbon */
+#opuc-staging-area {
+    display: none; /* Hidden until activated */
+    width: 100%;
+    min-height: 80px;
+    background: var(--opuc-bg-primary);
+    border: 2px dashed var(--opuc-border);
+    margin-bottom: 10px;
+    border-radius: var(--opuc-radius);
+    padding: 10px;
+    box-sizing: border-box;
+    color: var(--opuc-text-main);
+}
+
+#opuc-staging-area.active {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Drag & Drop Visual Feedback */
+.opuc-drag-active {
+    border: 2px dashed var(--opuc-accent) !important;
+    background-color: rgba(255, 152, 0, 0.1) !important;
+}
