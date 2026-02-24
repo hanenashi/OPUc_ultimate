@@ -1,0 +1,14 @@
+/* css/theme-vanilla.css */
+:root {
+    --opuc-bg-primary: #f0f0f0;
+    --opuc-bg-secondary: #ffffff;
+    --opuc-text-main: #333333;
+    --opuc-text-muted: #777777;
+    --opuc-accent: #FF9800;
+    --opuc-accent-hover: #F57C00;
+    --opuc-border: #cccccc;
+    --opuc-danger: #F44336;
+    --opuc-success: #4CAF50;
+    --opuc-radius: 4px;
+    --opuc-z-index-overlay: 2147483647;
+}
