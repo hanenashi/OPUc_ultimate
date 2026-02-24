@@ -3,7 +3,8 @@
     'use strict';
 
     window.OPUcEditor = {
-        queue: [], // Holds the files currently in staging
+        queue: [], 
+        isUploading: false, // Flag to track upload state
 
         createThumbnail: function(file, callback) {
             const reader = new FileReader();
@@ -58,7 +59,6 @@
         },
 
         removeFromQueue: function(index, visualElement) {
-            if (window.OPUcLog) window.OPUcLog.debug(`Removing file at index ${index} from staging queue.`);
             this.queue[index] = null; 
             visualElement.remove();
             this.refreshControls();
@@ -72,7 +72,7 @@
             
             if (activeItems > 0) {
                 controls.style.display = 'flex';
-                controls.innerHTML = ''; // Clear existing
+                controls.innerHTML = ''; 
                 
                 const uploadBtn = document.createElement('button');
                 uploadBtn.innerHTML = `🚀 Upload All (${activeItems})`;
@@ -95,28 +95,44 @@
         flushQueue: async function() {
             if (window.OPUcLog) window.OPUcLog.info("Flushing staging queue to API...");
             
-            // Process uploads sequentially to preserve layout order in the text box
+            this.isUploading = true;
+            let completed = 0;
+            const itemsToUpload = this.queue.filter(f => f !== null).length;
+
+            // Turn button into Cancel/Progress bar
+            window.OPUcUI.setWorkingState(() => {
+                this.isUploading = false; // Flag triggers loop break
+                if (window.OPUcLog) window.OPUcLog.warn("Batch upload aborted by user.");
+            });
+
             for (let i = 0; i < this.queue.length; i++) {
+                if (!this.isUploading) break; // User clicked Cancel
+
                 const file = this.queue[i];
                 if (file !== null) {
                     try {
                         await window.OPUcAPI.upload(file);
-                        // Visual feedback that this specific image finished
                         const visualItem = document.querySelector(`div[data-index="${i}"]`);
                         if (visualItem) visualItem.style.opacity = '0.3'; 
-                    } catch (err) {
-                        if (window.OPUcLog) window.OPUcLog.error(`Failed to upload item ${i}`, err);
-                    }
+                        completed++;
+                        window.OPUcUI.updateProgress(completed, itemsToUpload);
+                    } catch (err) {}
                 }
             }
             
-            // Clear everything once done
-            this.queue = [];
-            const stagingItems = document.getElementById('opuc-staging-items');
-            if (stagingItems) stagingItems.innerHTML = '';
-            this.refreshControls();
+            if (!this.isUploading) {
+                // If cancelled, keep the remaining queue so they don't lose data
+                this.queue = this.queue.filter(f => f !== null); 
+            } else {
+                // Fully finished
+                this.queue = [];
+                const stagingItems = document.getElementById('opuc-staging-items');
+                if (stagingItems) stagingItems.innerHTML = '';
+            }
             
-            if (window.OPUcLog) window.OPUcLog.info("Staging queue flushed and cleared.");
+            this.isUploading = false;
+            window.OPUcUI.resetButtonState();
+            this.refreshControls();
         }
     };
 
@@ -128,25 +144,17 @@
 
         let filesArray = Array.from(files);
 
-        // --- ANON MODE BATCH ENFORCER ---
         if (!isLoggedIn) {
             const currentQueueSize = window.OPUcEditor.queue.filter(i => i !== null).length;
-            
             if (filesArray.length > 1 || currentQueueSize >= 1) {
-                // Toast notification
                 const t = document.createElement('div');
                 t.innerText = "Anon mode limited to 1 file. Log in for batch uploads.";
                 t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#F44336;color:#fff;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
                 document.body.appendChild(t);
                 setTimeout(()=>t.remove(), 3500);
 
-                if (window.OPUcLog) window.OPUcLog.warn("Blocked Anon batch upload attempt.");
-
-                if (currentQueueSize >= 1) {
-                    return; // Queue is full for anons. Drop the action completely.
-                } else {
-                    filesArray = [filesArray[0]]; // Strip down to just the first file
-                }
+                if (currentQueueSize >= 1) return; 
+                else filesArray = [filesArray[0]]; 
             }
         }
 
@@ -161,7 +169,6 @@
                 
                 window.OPUcEditor.refreshControls();
             } else {
-                if (window.OPUcLog) window.OPUcLog.info("Staging disabled. Firing direct upload...");
                 window.OPUcAPI.upload(file);
             }
         });
