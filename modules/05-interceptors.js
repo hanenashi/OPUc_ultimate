@@ -5,102 +5,68 @@
     window.OPUcCore = window.OPUcCore || {};
     window.OPUcCore.activeLeechRequests = []; 
 
-    // --- URL LEECHER ---
     window.OPUcCore.leechUrl = function(url) {
-        if (window.OPUcLog) window.OPUcLog.info(`Leeching image from URL: ${url}`);
-        
         window.OPUcRequest({
-            method: 'GET',
-            url: url,
-            responseType: 'blob',
+            method: 'GET', url: url, responseType: 'blob',
             onload: function(res) {
                 if (res.status === 200 && res.response instanceof Blob) {
                     let ext = 'png';
                     const match = url.match(/\.(png|jpe?g|gif|webp|bmp)/i);
                     if (match) ext = match[1].toLowerCase();
-                    
-                    const fileName = `leeched_${Date.now()}.${ext}`;
-                    const file = new File([res.response], fileName, { type: res.response.type });
-                    
-                    if (window.OPUcLog) window.OPUcLog.info(`Leech successful! Pushing ${fileName} to queue.`);
+                    const file = new File([res.response], `leeched_${Date.now()}.${ext}`, { type: res.response.type });
                     window.OPUcCore.handleIncomingFiles([file]);
                 } else {
-                    if (window.OPUcLog) window.OPUcLog.error(`Failed to leech URL. HTTP ${res.status}`);
                     const t = document.createElement('div');
-                    t.innerText = "OPUc: Failed to leech image from URL. Server might be blocking access.";
+                    t.innerText = "OPUc: Failed to leech image from URL.";
                     t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#F44336;color:#fff;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
                     document.body.appendChild(t);
                     setTimeout(()=>t.remove(), 4000);
                 }
-            },
-            onerror: function(err) {
-                if (window.OPUcLog) window.OPUcLog.error("Network error while leeching URL.", err);
             }
         });
     };
 
-    // --- BATCH URL LEECHER ---
     window.OPUcCore.leechUrls = async function(urlsArray) {
         if (urlsArray.length === 0) return;
-        
         const total = urlsArray.length;
         let completed = 0;
         const downloadedFiles = [];
         let isCancelled = false;
 
-        if (window.OPUcLog) window.OPUcLog.info(`Starting batch leech of ${total} URLs...`);
-
         window.OPUcUI.setWorkingState(() => {
             isCancelled = true;
             window.OPUcCore.activeLeechRequests.forEach(abort => abort());
             window.OPUcCore.activeLeechRequests = [];
-            if (window.OPUcLog) window.OPUcLog.warn("Batch leeching aborted by user.");
         });
 
         for (const url of urlsArray) {
             if (isCancelled) break;
-
             try {
                 const file = await new Promise((resolve, reject) => {
                     const req = window.OPUcRequest({
-                        method: 'GET',
-                        url: url,
-                        responseType: 'blob',
+                        method: 'GET', url: url, responseType: 'blob',
                         onload: (res) => {
                             if (res.status === 200 && res.response instanceof Blob) {
                                 let ext = 'png';
                                 const match = url.match(/\.(png|jpe?g|gif|webp|bmp)/i);
                                 if (match) ext = match[1].toLowerCase();
                                 resolve(new File([res.response], `leeched_${Date.now()}.${ext}`, { type: res.response.type }));
-                            } else {
-                                reject(`HTTP ${res.status}`);
-                            }
+                            } else reject(`HTTP ${res.status}`);
                         },
                         onerror: (err) => reject(err),
                         onabort: () => reject('ABORTED')
                     });
-                    
-                    // GM4 doesn't support aborting natively. If it exists, add it to the kill switch array.
-                    if (req && typeof req.abort === 'function') {
-                        window.OPUcCore.activeLeechRequests.push(req.abort);
-                    }
+                    if (req && typeof req.abort === 'function') window.OPUcCore.activeLeechRequests.push(req.abort);
                 });
-                
                 downloadedFiles.push(file);
-            } catch (err) {
-                if (err !== 'ABORTED' && window.OPUcLog) window.OPUcLog.error(`Failed to leech: ${url}`, err);
-            }
-
+            } catch (err) {}
             completed++;
             window.OPUcUI.updateProgress(completed, total);
         }
 
         window.OPUcCore.activeLeechRequests = [];
         if (!isCancelled) window.OPUcUI.resetButtonState();
-
-        if (downloadedFiles.length > 0) {
-            window.OPUcCore.handleIncomingFiles(downloadedFiles);
-        }
+        if (downloadedFiles.length > 0) window.OPUcCore.handleIncomingFiles(downloadedFiles);
     };
 
     const extractImageUrls = (textData, htmlData) => {
@@ -109,19 +75,12 @@
 
         if (htmlData) {
             const doc = new DOMParser().parseFromString(htmlData, 'text/html');
-            doc.querySelectorAll('img').forEach(img => {
-                if (img.src && imgRegex.test(img.src)) urls.add(img.src);
-            });
-            doc.querySelectorAll('a').forEach(a => {
-                if (a.href && imgRegex.test(a.href)) urls.add(a.href);
-            });
+            doc.querySelectorAll('img').forEach(img => { if (img.src && imgRegex.test(img.src)) urls.add(img.src); });
+            doc.querySelectorAll('a').forEach(a => { if (a.href && imgRegex.test(a.href)) urls.add(a.href); });
         }
-
         if (textData) {
             let match;
-            while ((match = imgRegex.exec(textData)) !== null) {
-                urls.add(match[0]);
-            }
+            while ((match = imgRegex.exec(textData)) !== null) urls.add(match[0]);
         }
         return Array.from(urls);
     };
@@ -150,6 +109,15 @@
                 if (filesToProcess.length > 0) {
                     e.preventDefault(); 
                     window.OPUcCore.handleIncomingFiles(filesToProcess);
+                } else if (window.OPUcConfig.settings.interceptPasteUrls) {
+                    // FIREFOX FIX: If setting is enabled, parse URLs natively on Ctrl+V
+                    const text = clipboard.getData('text/plain');
+                    const html = clipboard.getData('text/html');
+                    const foundUrls = extractImageUrls(text, html);
+                    if (foundUrls.length > 0) {
+                        e.preventDefault();
+                        window.OPUcCore.leechUrls(foundUrls);
+                    }
                 }
             });
 
@@ -163,23 +131,13 @@
                 dom.textArea.addEventListener('keydown', async (e) => {
                     if (e.ctrlKey === reqCtrl && e.altKey === reqAlt && e.shiftKey === reqShift && e.key.toLowerCase() === reqKey) {
                         e.preventDefault();
-                        
                         try {
                             const clipboardItems = await navigator.clipboard.read();
                             const files = [];
                             
                             for (const item of clipboardItems) {
-                                if (item.types.length === 0) {
-                                    const t = document.createElement('div');
-                                    t.innerText = "Browser security blocks OS Files here. Please use Ctrl+V.";
-                                    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#FF9800;color:#000;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
-                                    document.body.appendChild(t);
-                                    setTimeout(()=>t.remove(), 4000);
-                                    return;
-                                }
-
+                                if (item.types.length === 0) return;
                                 const imageTypes = item.types.filter(type => type.startsWith('image/'));
-                                
                                 if (imageTypes.length > 0) {
                                     for (const type of imageTypes) {
                                         const blob = await item.getType(type);
@@ -187,12 +145,8 @@
                                     }
                                 } else {
                                     let textData = '', htmlData = '';
-                                    if (item.types.includes('text/plain')) {
-                                        textData = await (await item.getType('text/plain')).text();
-                                    }
-                                    if (item.types.includes('text/html')) {
-                                        htmlData = await (await item.getType('text/html')).text();
-                                    }
+                                    if (item.types.includes('text/plain')) textData = await (await item.getType('text/plain')).text();
+                                    if (item.types.includes('text/html')) htmlData = await (await item.getType('text/html')).text();
                                     
                                     const foundUrls = extractImageUrls(textData, htmlData);
                                     if (foundUrls.length > 0) {
@@ -201,7 +155,6 @@
                                     }
                                 }
                             }
-                            
                             if (files.length > 0) window.OPUcCore.handleIncomingFiles(files);
                         } catch (err) {}
                     }
