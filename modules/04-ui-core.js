@@ -34,7 +34,9 @@
             opucBtn.id = 'opuc-main-btn';
             opucBtn.type = 'button';
             opucBtn.innerHTML = '⚙️ OPUc';
-            opucBtn.title = 'Left Click: Add File | Right Click: Gallery';
+            opucBtn.title = 'Left Click: Add File | Right Click: Menu';
+            // Position it relatively so our dropdown can anchor to it
+            opucBtn.style.position = 'relative'; 
             dom.toolsRow.appendChild(opucBtn);
 
             // 3. Build Hidden File Input for the OS Picker
@@ -45,40 +47,96 @@
             fileInput.style.display = 'none';
             document.body.appendChild(fileInput);
 
-            // 4. Attach Event Listeners
+            // 4. Build Context Menu (Hidden by default)
+            this.buildContextMenu(opucBtn);
+
+            // 5. Attach Event Listeners
             this.attachButtonEvents(opucBtn, fileInput);
             
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files && e.target.files.length > 0) {
-                    if (window.OPUcLog) window.OPUcLog.info(`OS Picker caught ${e.target.files.length} file(s).`);
                     window.OPUcCore.handleIncomingFiles(e.target.files);
                 }
                 fileInput.value = ''; 
             });
+
+            // Close context menu if tapping elsewhere
+            document.addEventListener('click', (e) => {
+                const menu = document.getElementById('opuc-context-menu');
+                if (menu && menu.style.display === 'block' && e.target !== opucBtn) {
+                    menu.style.display = 'none';
+                }
+            });
+        },
+
+        buildContextMenu: function(parentBtn) {
+            const menu = document.createElement('div');
+            menu.id = 'opuc-context-menu';
+            menu.style.cssText = `
+                display: none; position: absolute; top: 110%; left: 0; 
+                background: var(--opuc-bg-primary, #2b2b2b); border: 1px solid var(--opuc-accent, #FF9800); 
+                border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
+                z-index: var(--opuc-z-index-overlay, 2147483647); min-width: 150px; overflow: hidden;
+            `;
+
+            const createItem = (icon, text, onClick) => {
+                const item = document.createElement('div');
+                item.innerHTML = `${icon} <span style="margin-left: 8px;">${text}</span>`;
+                item.style.cssText = `
+                    padding: 10px 15px; cursor: pointer; color: var(--opuc-text-main, #fff); 
+                    font-size: 14px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05);
+                `;
+                item.onmouseover = () => item.style.background = 'rgba(255, 152, 0, 0.2)';
+                item.onmouseout = () => item.style.background = 'transparent';
+                item.onclick = (e) => {
+                    e.preventDefault();
+                    menu.style.display = 'none'; // Close menu on click
+                    onClick();
+                };
+                return item;
+            };
+
+            // Add Menu Items
+            menu.appendChild(createItem('🖼️', 'Gallery', () => {
+                if (window.OPUcGallery) window.OPUcGallery.open();
+            }));
+
+            menu.appendChild(createItem('⏸️', 'Toggle Staging', () => {
+                const current = window.OPUcConfig.settings.stagingEnabled;
+                window.OPUcConfig.set('opuc_staging_enabled', !current);
+                if (window.OPUcLog) window.OPUcLog.info(`Staging is now ${!current ? 'ON' : 'OFF'}`);
+                alert(`Staging Mode is now ${!current ? 'ON' : 'OFF'}`);
+            }));
+
+            menu.appendChild(createItem('⚙️', 'Settings', () => {
+                alert("Settings Module Coming Next!");
+                // TODO: Phase 6 - Open Settings Modal
+            }));
+
+            parentBtn.appendChild(menu);
         },
 
         attachButtonEvents: function(btn, fileInput) {
-            // LEFT CLICK -> Trigger OS Picker
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
+                // If menu is open, close it. Otherwise, trigger file picker.
+                const menu = document.getElementById('opuc-context-menu');
+                if (menu && menu.style.display === 'block') {
+                    menu.style.display = 'none';
+                    return;
+                }
                 const action = window.OPUcConfig.settings.primaryAction;
                 if (action === 'picker' || action === 'staging') {
-                    if (window.OPUcLog) window.OPUcLog.debug("OPUc Button Clicked. Opening OS File Picker...");
                     fileInput.click();
-                } else {
-                    if (window.OPUcLog) window.OPUcLog.info(`Action ${action} not fully implemented yet.`);
                 }
             });
 
-            // RIGHT CLICK / LONG PRESS -> Open Gallery
             btn.addEventListener('contextmenu', (e) => {
-                e.preventDefault(); // Crucial for stopping the native browser menu on mobile long-press
-                if (window.OPUcLog) window.OPUcLog.debug("OPUc Button Right-Clicked. Opening Gallery.");
-                
-                if (window.OPUcGallery) {
-                    window.OPUcGallery.open();
-                } else {
-                    if (window.OPUcLog) window.OPUcLog.error("Gallery module is not loaded!");
+                e.preventDefault(); 
+                e.stopPropagation();
+                const menu = document.getElementById('opuc-context-menu');
+                if (menu) {
+                    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
                 }
             });
         },
@@ -86,7 +144,6 @@
         toggleStaging: function(forceState = null) {
             const stagingArea = document.getElementById('opuc-staging-area');
             if (!stagingArea) return;
-            
             const isEnabled = forceState !== null ? forceState : window.OPUcConfig.settings.stagingEnabled;
             if (isEnabled) {
                 stagingArea.classList.add('active');
