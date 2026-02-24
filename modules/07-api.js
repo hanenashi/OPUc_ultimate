@@ -11,7 +11,6 @@
                     method: 'GET',
                     url: window.OPUcConfig.api.gallery,
                     onload: function(response) {
-                        // If OPU redirects to login page, user is logged out
                         const isLoggedIn = !response.finalUrl.includes('page=prihlaseni');
                         if (window.OPUcLog) window.OPUcLog.debug(`Session check: ${isLoggedIn ? 'LOGGED IN' : 'LOGGED OUT'}`);
                         resolve(isLoggedIn);
@@ -29,19 +28,17 @@
             const isLoggedIn = await this.checkLoginStatus();
             
             if (!isLoggedIn) {
-                if (window.OPUcLog) window.OPUcLog.error("Upload aborted: You are not logged into opu.peklo.biz!");
-                alert("OPUc Error: Please log into opu.peklo.biz in another tab first.");
-                return;
+                // Silently log instead of shouting with an alert
+                if (window.OPUcLog) window.OPUcLog.warn("Upload attempting while apparently logged out of OPU.");
             }
 
             if (window.OPUcLog) window.OPUcLog.info(`Starting upload for: ${file.name || 'blob'}`);
             
-            // Build the payload identical to OPU's native HTML form
             const formData = new FormData();
             formData.append('obrazek[0]', file);
-            formData.append('sizep', '0');      // Do not resize on server
-            formData.append('outputf', 'auto'); // Auto format
-            formData.append('tl_odeslat', 'Odeslat'); // The submit button trigger
+            formData.append('sizep', '0');      
+            formData.append('outputf', 'auto'); 
+            formData.append('tl_odeslat', 'Odeslat'); 
 
             return new Promise((resolve, reject) => {
                 GM_xmlhttpRequest({
@@ -53,7 +50,6 @@
                             if (e.lengthComputable) {
                                 const percent = Math.round((e.loaded / e.total) * 100);
                                 if (window.OPUcLog) window.OPUcLog.debug(`Upload progress: ${percent}%`);
-                                // TODO: Hook this to a visual progress bar over the Staging Ribbon thumbnail
                             }
                         }
                     },
@@ -61,8 +57,6 @@
                         if (response.status === 200) {
                             if (window.OPUcLog) window.OPUcLog.info("Upload complete! Parsing response...");
                             
-                            // OPU returns an HTML page containing the links. 
-                            // We need to parse it to extract the final image URL.
                             const finalLink = window.OPUcAPI.extractLinkFromResponse(response.responseText);
                             
                             if (finalLink) {
@@ -85,16 +79,23 @@
             });
         },
 
-        // 3. Response Parser
+        // 3. Response Parser (FIXED)
         extractLinkFromResponse: function(htmlString) {
-            // Parses the returned HTML from opupload.php to find the generated URL
             const doc = new DOMParser().parseFromString(htmlString, 'text/html');
-            
-            // Look for OPU's native output inputs (e.g., id="link_0" or id="htmlcode_0")
             const linkInput = doc.querySelector('input[id^="link_"]'); 
             
             if (linkInput && linkInput.value) {
-                if (window.OPUcLog) window.OPUcLog.debug(`Successfully extracted link: ${linkInput.value}`);
+                // OPU returns: <a href="https://opu.peklo.biz/p/...">name.jpg</a>
+                // We use Regex to extract just the raw URL inside the href=""
+                const match = linkInput.value.match(/href="([^"]+)"/i);
+                
+                if (match && match[1]) {
+                    const rawUrl = match[1];
+                    if (window.OPUcLog) window.OPUcLog.debug(`Successfully extracted raw link: ${rawUrl}`);
+                    return rawUrl;
+                }
+                
+                // Fallback just in case OPU changes their output format later
                 return linkInput.value;
             }
             return null;
@@ -105,23 +106,22 @@
             const textArea = window.OPUcConfig.dom.textArea;
             if (!textArea) return;
 
-            // TODO: Read Okoun's actual select[name="bodyType"] to determine HTML vs Radeox
-            // Defaulting to simple HTML img tag for now
             const formattedTag = `<img src="${imageUrl}">\n`;
             
-            // Insert at cursor position
             const startPos = textArea.selectionStart;
             const endPos = textArea.selectionEnd;
             
             if (startPos !== undefined && startPos !== null) {
                 textArea.value = textArea.value.substring(0, startPos) + formattedTag + textArea.value.substring(endPos, textArea.value.length);
-                // Move cursor to after the inserted tag
                 textArea.selectionStart = textArea.selectionEnd = startPos + formattedTag.length;
             } else {
                 textArea.value += formattedTag;
             }
             
             if (window.OPUcLog) window.OPUcLog.info("Successfully injected image tag into Okoun reply box.");
+            
+            // Trigger Okoun's input event so any native board scripts know the text changed
+            textArea.dispatchEvent(new Event('input', { bubbles: true }));
         }
     };
 })();
