@@ -7,7 +7,6 @@
         isLoading: false,
         hasMore: true,
         selectedImages: new Set(),
-        observer: null,
 
         open: function() {
             if (window.OPUcLog) window.OPUcLog.info("Opening OPUc Gallery Overlay...");
@@ -43,15 +42,21 @@
 
                 const grid = document.createElement('div');
                 grid.id = 'opuc-gallery-grid';
-                grid.style.cssText = 'flex: 1; overflow-y: auto; padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; align-content: start;';
+                // FIX: Rock-solid Flexbox instead of CSS Grid to prevent mobile squishing
+                grid.style.cssText = 'flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-content: flex-start;';
                 
-                // THE FIX: Intersection Observer instead of buggy scroll math
-                this.observer = new IntersectionObserver((entries) => {
-                    if (entries[0].isIntersecting && !this.isLoading && this.hasMore) {
-                        if (window.OPUcLog) window.OPUcLog.debug("Sentinel reached. Fetching next page...");
+                // FIX: Bulletproof scroll math
+                grid.addEventListener('scroll', () => {
+                    if (this.isLoading || !this.hasMore) return;
+                    
+                    // Calculate how far we are from the bottom of the scrolling container
+                    const distanceToBottom = grid.scrollHeight - grid.scrollTop - grid.clientHeight;
+                    
+                    // If we are within 400px of the bottom, fetch the next page
+                    if (distanceToBottom < 400) {
                         this.fetchPage(this.currentPage + 1);
                     }
-                }, { root: grid, rootMargin: '300px' });
+                });
 
                 const footer = document.createElement('div');
                 footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
@@ -89,7 +94,7 @@
         close: function() {
             const modal = document.getElementById('opuc-gallery-modal');
             if (modal) modal.style.display = 'none';
-            document.body.style.overflow = '';
+            document.body.style.overflow = ''; // Restore Okoun scrolling
             
             this.selectedImages.clear();
             this.updateStatus();
@@ -141,7 +146,8 @@
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'opuc-gallery-item';
-                wrapper.style.cssText = 'width: 100%; aspect-ratio: 1; border: 2px solid transparent; border-radius: 4px; overflow: hidden; cursor: pointer; transition: transform 0.1s; background: #000;';
+                // FIX: Hardcoded 100x100px so they never squish, forcing the container to scroll
+                wrapper.style.cssText = 'width: 100px; height: 100px; flex-shrink: 0; border: 2px solid transparent; border-radius: 4px; overflow: hidden; cursor: pointer; transition: transform 0.1s; background: #000;';
                 
                 const img = document.createElement('img');
                 img.loading = 'lazy'; 
@@ -153,18 +159,6 @@
                 wrapper.appendChild(img);
                 grid.appendChild(wrapper);
             });
-
-            // Re-append the sentinel at the very bottom
-            let sentinel = document.getElementById('opuc-gallery-sentinel');
-            if (!sentinel) {
-                sentinel = document.createElement('div');
-                sentinel.id = 'opuc-gallery-sentinel';
-                sentinel.style.cssText = 'grid-column: 1 / -1; height: 1px; width: 100%;';
-                grid.appendChild(sentinel);
-                if (this.observer) this.observer.observe(sentinel);
-            } else {
-                grid.appendChild(sentinel);
-            }
         },
 
         toggleSelection: function(wrapper, url, img) {
