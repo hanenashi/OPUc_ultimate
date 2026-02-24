@@ -35,8 +35,13 @@
             opucBtn.type = 'button';
             opucBtn.innerHTML = '⚙️ OPUc';
             opucBtn.title = 'Left Click: Add File | Right Click: Menu';
-            // Position it relatively so our dropdown can anchor to it
+            
+            // FIX: Prevent Android Text Selection on Long Press
             opucBtn.style.position = 'relative'; 
+            opucBtn.style.userSelect = 'none';
+            opucBtn.style.webkitUserSelect = 'none';
+            opucBtn.style.touchAction = 'manipulation'; // Stops double-tap zoom interference
+            
             dom.toolsRow.appendChild(opucBtn);
 
             // 3. Build Hidden File Input for the OS Picker
@@ -47,7 +52,7 @@
             fileInput.style.display = 'none';
             document.body.appendChild(fileInput);
 
-            // 4. Build Context Menu (Hidden by default)
+            // 4. Build Context Menu
             this.buildContextMenu(opucBtn);
 
             // 5. Attach Event Listeners
@@ -60,7 +65,6 @@
                 fileInput.value = ''; 
             });
 
-            // Close context menu if tapping elsewhere
             document.addEventListener('click', (e) => {
                 const menu = document.getElementById('opuc-context-menu');
                 if (menu && menu.style.display === 'block' && e.target !== opucBtn) {
@@ -90,13 +94,12 @@
                 item.onmouseout = () => item.style.background = 'transparent';
                 item.onclick = (e) => {
                     e.preventDefault();
-                    menu.style.display = 'none'; // Close menu on click
+                    menu.style.display = 'none';
                     onClick();
                 };
                 return item;
             };
 
-            // Add Menu Items
             menu.appendChild(createItem('🖼️', 'Gallery', () => {
                 if (window.OPUcGallery) window.OPUcGallery.open();
             }));
@@ -105,12 +108,17 @@
                 const current = window.OPUcConfig.settings.stagingEnabled;
                 window.OPUcConfig.set('opuc_staging_enabled', !current);
                 if (window.OPUcLog) window.OPUcLog.info(`Staging is now ${!current ? 'ON' : 'OFF'}`);
-                alert(`Staging Mode is now ${!current ? 'ON' : 'OFF'}`);
+                
+                // Show a quick visual toast instead of an alert
+                const toast = document.createElement('div');
+                toast.innerText = `Staging ${!current ? 'ON' : 'OFF'}`;
+                toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--opuc-accent, #FF9800); color:#000; padding:8px 16px; border-radius:20px; z-index:999999; font-weight:bold; transition:opacity 0.3s;';
+                document.body.appendChild(toast);
+                setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
             }));
 
             menu.appendChild(createItem('⚙️', 'Settings', () => {
                 alert("Settings Module Coming Next!");
-                // TODO: Phase 6 - Open Settings Modal
             }));
 
             parentBtn.appendChild(menu);
@@ -119,25 +127,23 @@
         attachButtonEvents: function(btn, fileInput) {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                // If menu is open, close it. Otherwise, trigger file picker.
                 const menu = document.getElementById('opuc-context-menu');
                 if (menu && menu.style.display === 'block') {
                     menu.style.display = 'none';
                     return;
                 }
                 const action = window.OPUcConfig.settings.primaryAction;
-                if (action === 'picker' || action === 'staging') {
-                    fileInput.click();
-                }
+                if (action === 'picker' || action === 'staging') fileInput.click();
             });
 
             btn.addEventListener('contextmenu', (e) => {
                 e.preventDefault(); 
                 e.stopPropagation();
+                // Close system selection if Android tried to trigger it anyway
+                if (window.getSelection) window.getSelection().removeAllRanges();
+                
                 const menu = document.getElementById('opuc-context-menu');
-                if (menu) {
-                    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-                }
+                if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
             });
         },
 
@@ -145,11 +151,8 @@
             const stagingArea = document.getElementById('opuc-staging-area');
             if (!stagingArea) return;
             const isEnabled = forceState !== null ? forceState : window.OPUcConfig.settings.stagingEnabled;
-            if (isEnabled) {
-                stagingArea.classList.add('active');
-            } else {
-                stagingArea.classList.remove('active');
-            }
+            if (isEnabled) stagingArea.classList.add('active');
+            else stagingArea.classList.remove('active');
         }
     };
 })();
