@@ -4,7 +4,6 @@
 
     window.OPUcAPI = {
         
-        // 1. Silent Session Check
         checkLoginStatus: function() {
             return new Promise((resolve) => {
                 GM_xmlhttpRequest({
@@ -12,25 +11,26 @@
                     url: window.OPUcConfig.api.gallery,
                     onload: function(response) {
                         const isLoggedIn = !response.finalUrl.includes('page=prihlaseni');
-                        if (window.OPUcLog) window.OPUcLog.debug(`Session check: ${isLoggedIn ? 'LOGGED IN' : 'LOGGED OUT'}`);
+                        if (window.OPUcLog) window.OPUcLog.debug(`Session check: ${isLoggedIn ? 'LOGGED IN' : 'LOGGED OUT (Anon Mode)'}`);
+                        
+                        // Save to global state
+                        window.OPUcConfig.state.isLoggedIn = isLoggedIn;
                         resolve(isLoggedIn);
                     },
                     onerror: function() {
-                        if (window.OPUcLog) window.OPUcLog.error("Failed to connect to OPU for session check.");
+                        if (window.OPUcLog) window.OPUcLog.error("Failed to connect to OPU for session check. Defaulting to Anon Mode.");
+                        window.OPUcConfig.state.isLoggedIn = false;
                         resolve(false);
                     }
                 });
             });
         },
 
-        // 2. The Upload Core
         upload: async function(file) {
-            const isLoggedIn = await this.checkLoginStatus();
+            // Check state locally instead of firing a new network request
+            const isLoggedIn = window.OPUcConfig.state.isLoggedIn;
             
-            if (!isLoggedIn) {
-                // Silently log instead of shouting with an alert
-                if (window.OPUcLog) window.OPUcLog.warn("Upload attempting while apparently logged out of OPU.");
-            }
+            if (!isLoggedIn && window.OPUcLog) window.OPUcLog.warn("Executing Anon Upload.");
 
             if (window.OPUcLog) window.OPUcLog.info(`Starting upload for: ${file.name || 'blob'}`);
             
@@ -55,60 +55,40 @@
                     },
                     onload: function(response) {
                         if (response.status === 200) {
-                            if (window.OPUcLog) window.OPUcLog.info("Upload complete! Parsing response...");
-                            
                             const finalLink = window.OPUcAPI.extractLinkFromResponse(response.responseText);
-                            
                             if (finalLink) {
                                 window.OPUcAPI.injectIntoOkoun(finalLink);
                                 resolve(finalLink);
                             } else {
-                                if (window.OPUcLog) window.OPUcLog.error("Failed to extract image link from OPU response.");
                                 reject("Extraction failed");
                             }
                         } else {
-                            if (window.OPUcLog) window.OPUcLog.error(`Upload failed. Server returned status: ${response.status}`);
                             reject(`HTTP Error ${response.status}`);
                         }
                     },
                     onerror: function(err) {
-                        if (window.OPUcLog) window.OPUcLog.error("Network error during upload.", err);
                         reject(err);
                     }
                 });
             });
         },
 
-        // 3. Response Parser (FIXED)
         extractLinkFromResponse: function(htmlString) {
             const doc = new DOMParser().parseFromString(htmlString, 'text/html');
             const linkInput = doc.querySelector('input[id^="link_"]'); 
-            
             if (linkInput && linkInput.value) {
-                // OPU returns: <a href="https://opu.peklo.biz/p/...">name.jpg</a>
-                // We use Regex to extract just the raw URL inside the href=""
                 const match = linkInput.value.match(/href="([^"]+)"/i);
-                
-                if (match && match[1]) {
-                    const rawUrl = match[1];
-                    if (window.OPUcLog) window.OPUcLog.debug(`Successfully extracted raw link: ${rawUrl}`);
-                    return rawUrl;
-                }
-                
-                // Fallback just in case OPU changes their output format later
+                if (match && match[1]) return match[1];
                 return linkInput.value;
             }
             return null;
         },
 
-        // 4. Okoun Formatter & Injector
-                // In modules/07-api.js
         injectIntoOkoun: function(imageUrl) {
             const textArea = window.OPUcConfig.dom.textArea;
             if (!textArea) return;
 
-            // Fetch custom format from settings, defaulting to HTML
-            const formatString = window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">');
+            const formatString = window.OPUcConfig.settings.formatTag;
             const formattedTag = formatString.replace(/%url%/g, imageUrl) + '\n';
             
             const startPos = textArea.selectionStart;
@@ -121,7 +101,6 @@
                 textArea.value += formattedTag;
             }
             
-            if (window.OPUcLog) window.OPUcLog.info("Successfully injected image tag into Okoun reply box.");
             textArea.dispatchEvent(new Event('input', { bubbles: true }));
         }
     };
