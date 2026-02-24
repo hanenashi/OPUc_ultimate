@@ -3,57 +3,93 @@
     'use strict';
 
     window.OPUcCore = window.OPUcCore || {};
-    
-    // --- URL LEECHER ---
-    window.OPUcCore.leechUrl = function(url) {
-        if (window.OPUcLog) window.OPUcLog.info(`Leeching image from URL: ${url}`);
+    window.OPUcCore.activeLeechRequests = []; 
+
+    // --- BATCH URL LEECHER ---
+    window.OPUcCore.leechUrls = async function(urlsArray) {
+        if (urlsArray.length === 0) return;
         
-        GM_xmlhttpRequest({
-            method: 'GET',
-            url: url,
-            responseType: 'blob',
-            onload: function(res) {
-                if (res.status === 200 && res.response instanceof Blob) {
-                    let ext = 'png';
-                    const match = url.match(/\.(png|jpe?g|gif|webp|bmp)/i);
-                    if (match) ext = match[1].toLowerCase();
-                    
-                    const fileName = `leeched_${Date.now()}.${ext}`;
-                    const file = new File([res.response], fileName, { type: res.response.type });
-                    
-                    if (window.OPUcLog) window.OPUcLog.info(`Leech successful! Pushing ${fileName} to queue.`);
-                    window.OPUcCore.handleIncomingFiles([file]);
-                } else {
-                    if (window.OPUcLog) window.OPUcLog.error(`Failed to leech URL. HTTP ${res.status}`);
-                    const t = document.createElement('div');
-                    t.innerText = "OPUc: Failed to leech image from URL. Server might be blocking access.";
-                    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#F44336;color:#fff;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
-                    document.body.appendChild(t);
-                    setTimeout(()=>t.remove(), 4000);
-                }
-            },
-            onerror: function(err) {
-                if (window.OPUcLog) window.OPUcLog.error("Network error while leeching URL.", err);
-            }
+        const total = urlsArray.length;
+        let completed = 0;
+        const downloadedFiles = [];
+        let isCancelled = false;
+
+        if (window.OPUcLog) window.OPUcLog.info(`Starting batch leech of ${total} URLs...`);
+
+        // Turn button into Cancel/Progress bar
+        window.OPUcUI.setWorkingState(() => {
+            isCancelled = true;
+            window.OPUcCore.activeLeechRequests.forEach(abort => abort());
+            window.OPUcCore.activeLeechRequests = [];
+            if (window.OPUcLog) window.OPUcLog.warn("Batch leeching aborted by user.");
         });
+
+        for (const url of urlsArray) {
+            if (isCancelled) break;
+
+            try {
+                const file = await new Promise((resolve, reject) => {
+                    const req = GM_xmlhttpRequest({
+                        method: 'GET',
+                        url: url,
+                        responseType: 'blob',
+                        onload: (res) => {
+                            if (res.status === 200 && res.response instanceof Blob) {
+                                let ext = 'png';
+                                const match = url.match(/\.(png|jpe?g|gif|webp|bmp)/i);
+                                if (match) ext = match[1].toLowerCase();
+                                resolve(new File([res.response], `leeched_${Date.now()}.${ext}`, { type: res.response.type }));
+                            } else {
+                                reject(`HTTP ${res.status}`);
+                            }
+                        },
+                        onerror: (err) => reject(err),
+                        onabort: () => reject('ABORTED')
+                    });
+                    // Store the abort handle so the Cancel button can kill it mid-download
+                    window.OPUcCore.activeLeechRequests.push(req.abort);
+                });
+                
+                downloadedFiles.push(file);
+            } catch (err) {
+                if (err !== 'ABORTED' && window.OPUcLog) window.OPUcLog.error(`Failed to leech: ${url}`, err);
+            }
+
+            completed++;
+            window.OPUcUI.updateProgress(completed, total);
+        }
+
+        window.OPUcCore.activeLeechRequests = [];
+        if (!isCancelled) window.OPUcUI.resetButtonState();
+
+        if (downloadedFiles.length > 0) {
+            window.OPUcCore.handleIncomingFiles(downloadedFiles);
+        }
     };
 
-    // --- HELPER: Extract URL from Text or HTML ---
-    const extractImageUrl = (textData, htmlData) => {
-        if (textData) {
-            const cleanText = textData.trim();
-            if (/^https?:\/\/.*\.(png|jpe?g|gif|webp|bmp)(\?.*)?$/i.test(cleanText)) {
-                return cleanText;
-            }
-        }
+    // --- HELPER: Extract Multiple URLs ---
+    const extractImageUrls = (textData, htmlData) => {
+        const urls = new Set();
+        // Regex to match URLs ending in common image extensions, ignoring surrounding HTML/Text junk
+        const imgRegex = /(?:https?:\/\/)[^\s<>"']+\.(?:png|jpe?g|gif|webp|bmp)(?:\?[^\s<>"']*)?/gi;
+
         if (htmlData) {
             const doc = new DOMParser().parseFromString(htmlData, 'text/html');
-            const img = doc.querySelector('img');
-            if (img && img.src && /^https?:\/\//i.test(img.src)) {
-                return img.src;
+            doc.querySelectorAll('img').forEach(img => {
+                if (img.src && imgRegex.test(img.src)) urls.add(img.src);
+            });
+            doc.querySelectorAll('a').forEach(a => {
+                if (a.href && imgRegex.test(a.href)) urls.add(a.href);
+            });
+        }
+
+        if (textData) {
+            let match;
+            while ((match = imgRegex.exec(textData)) !== null) {
+                urls.add(match[0]);
             }
         }
-        return null;
+        return Array.from(urls);
     };
 
     window.OPUcInterceptors = {
@@ -61,14 +97,10 @@
             const dom = window.OPUcConfig.dom;
             if (!dom.textArea) return;
 
-            if (window.OPUcLog) window.OPUcLog.debug("Arming interceptors on textarea...");
-
             const shortcutRaw = window.OPUcConfig.settings.uploadShortcut || 'Alt+V';
             const shortcut = shortcutRaw.toLowerCase().replace(/\s/g, '');
 
             // --- NATIVE PASTE EVENT (Ctrl+V) ---
-            // Pure: Only intercepts raw image blobs (Snipping Tool, OS Files). 
-            // Ignores everything else (text, URLs, HTML) so standard pasting works perfectly.
             dom.textArea.addEventListener('paste', (e) => {
                 const clipboard = e.clipboardData || window.clipboardData;
                 if (!clipboard) return;
@@ -84,7 +116,6 @@
 
                 if (filesToProcess.length > 0) {
                     e.preventDefault(); 
-                    if (window.OPUcLog) window.OPUcLog.info(`Intercepted ${filesToProcess.length} pasted image(s).`);
                     window.OPUcCore.handleIncomingFiles(filesToProcess);
                 }
             });
@@ -100,17 +131,13 @@
                 dom.textArea.addEventListener('keydown', async (e) => {
                     if (e.ctrlKey === reqCtrl && e.altKey === reqAlt && e.shiftKey === reqShift && e.key.toLowerCase() === reqKey) {
                         e.preventDefault();
-                        if (window.OPUcLog) window.OPUcLog.debug(`Custom shortcut ${shortcut} pressed. Reading clipboard...`);
                         
                         try {
                             const clipboardItems = await navigator.clipboard.read();
                             const files = [];
                             
                             for (const item of clipboardItems) {
-                                if (window.OPUcLog) window.OPUcLog.debug(`Clipboard item types detected: [${item.types.join(', ')}]`);
-
                                 if (item.types.length === 0) {
-                                    if (window.OPUcLog) window.OPUcLog.warn("Browser blocked OS File Explorer copy. Prompting user to use Ctrl+V.");
                                     const t = document.createElement('div');
                                     t.innerText = "Browser security blocks OS Files here. Please use Ctrl+V.";
                                     t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#FF9800;color:#000;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
@@ -129,49 +156,33 @@
                                 } else {
                                     let textData = '', htmlData = '';
                                     if (item.types.includes('text/plain')) {
-                                        const textBlob = await item.getType('text/plain');
-                                        textData = await textBlob.text();
+                                        textData = await (await item.getType('text/plain')).text();
                                     }
                                     if (item.types.includes('text/html')) {
-                                        const htmlBlob = await item.getType('text/html');
-                                        htmlData = await htmlBlob.text();
+                                        htmlData = await (await item.getType('text/html')).text();
                                     }
                                     
-                                    const foundUrl = extractImageUrl(textData, htmlData);
-                                    if (foundUrl) {
-                                        window.OPUcCore.leechUrl(foundUrl);
+                                    const foundUrls = extractImageUrls(textData, htmlData);
+                                    if (foundUrls.length > 0) {
+                                        window.OPUcCore.leechUrls(foundUrls);
                                         return; 
                                     }
                                 }
                             }
                             
-                            if (files.length > 0) {
-                                window.OPUcCore.handleIncomingFiles(files);
-                            } else {
-                                if (window.OPUcLog) window.OPUcLog.warn("No usable images or image URLs found in clipboard.");
-                            }
-                        } catch (err) {
-                            if (window.OPUcLog) window.OPUcLog.error("Clipboard API access denied or failed.", err);
-                        }
+                            if (files.length > 0) window.OPUcCore.handleIncomingFiles(files);
+                        } catch (err) {}
                     }
                 });
             }
 
             // --- DRAG & DROP INTERCEPTOR ---
             if (window.OPUcConfig.settings.interceptDrop) {
-                dom.textArea.addEventListener('dragover', (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    dom.textArea.classList.add('opuc-drag-active');
-                });
-                dom.textArea.addEventListener('dragleave', (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    dom.textArea.classList.remove('opuc-drag-active');
-                });
+                dom.textArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dom.textArea.classList.add('opuc-drag-active'); });
+                dom.textArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dom.textArea.classList.remove('opuc-drag-active'); });
                 dom.textArea.addEventListener('drop', (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    dom.textArea.classList.remove('opuc-drag-active');
-                    
-                    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    e.preventDefault(); e.stopPropagation(); dom.textArea.classList.remove('opuc-drag-active');
+                    if (e.dataTransfer && e.dataTransfer.files) {
                         const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
                         if (files.length > 0) window.OPUcCore.handleIncomingFiles(files);
                     }
