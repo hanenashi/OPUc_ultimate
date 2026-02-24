@@ -8,15 +8,14 @@
 
         settings: {
             get stagingEnabled() { return window.OPUcConfig.get('opuc_staging_enabled', true); },
-            get interceptPaste() { return window.OPUcConfig.get('opuc_intercept_paste', true); },
+            get uploadShortcut() { return window.OPUcConfig.get('opuc_upload_shortcut', 'Alt+V'); },
             get interceptDrop() { return window.OPUcConfig.get('opuc_intercept_drop', true); },
             get primaryAction() { return window.OPUcConfig.get('opuc_primary_action', 'picker'); },
             get formatTag() { return window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">'); }
         },
 
-        // NEW: Live State Tracking
         state: {
-            isLoggedIn: true // Assumes true until the boot check verifies it
+            isLoggedIn: true
         },
 
         dom: {
