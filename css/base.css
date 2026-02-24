@@ -1,12 +1,5 @@
 /* css/base.css */
 
-/* The Main Injection Button (Inherits Okoun's .submit class natively) */
-#opuc-main-btn {
-    margin-left: 5px;
-    vertical-align: middle;
-    /* Background, border, height, and font are intentionally omitted to let Okoun's native CSS take over */
-}
-
 /* Staging Area Ribbon */
 #opuc-staging-area {
     display: none; 
