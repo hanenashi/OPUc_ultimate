@@ -14,15 +14,15 @@
                     background: rgba(0,0,0,0.6); z-index: var(--opuc-z-index-overlay, 2147483647);
                     display: flex; flex-direction: column; align-items: center; justify-content: center;
                     backdrop-filter: blur(5px);
-                    font-family: system-ui, -apple-system, sans-serif;
                 `;
 
                 const container = document.createElement('div');
+                container.className = 'opuc-scalable'; // Applies the CSS transform scaling!
                 container.style.cssText = `
                     width: 90%; max-width: 500px; background: var(--opuc-bg-secondary);
                     border-radius: 8px; border: 1px solid var(--opuc-border);
                     display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                    color: var(--opuc-text-main);
+                    color: var(--opuc-text-main); font-family: var(--opuc-font);
                 `;
 
                 const header = document.createElement('div');
@@ -50,7 +50,7 @@
                     const row = document.createElement('div');
                     row.style.cssText = 'display: flex; flex-direction: column; gap: 5px; font-size: 14px;';
                     const currentVal = window.OPUcConfig.get(id, defaultVal);
-                    let selectHTML = `<select id="${id}" style="padding: 8px; background: var(--opuc-bg-secondary); color: var(--opuc-text-main); border: 1px solid var(--opuc-border); border-radius: 4px; outline: none;">`;
+                    let selectHTML = `<select id="${id}" style="padding: 8px; background: var(--opuc-bg-secondary); color: var(--opuc-text-main); border: 1px solid var(--opuc-border); border-radius: 4px; outline: none; font-family: inherit;">`;
                     options.forEach(opt => {
                         selectHTML += `<option value="${opt.value}" ${currentVal === opt.value ? 'selected' : ''}>${opt.text}</option>`;
                     });
@@ -69,9 +69,22 @@
                     return row;
                 };
 
+                // Add Theme and Scale to the top
+                body.appendChild(createSelect('opuc_theme', 'UI Theme', [
+                    { value: 'classic', text: 'Okoun Classic (Light)' },
+                    { value: 'dark', text: 'Night Mode (Dark)' },
+                    { value: 'contrast', text: 'High Contrast (Hacker)' },
+                    { value: 'retro', text: 'Retro 8-Bit' }
+                ], 'classic'));
+                body.appendChild(createSelect('opuc_ui_scale', 'Mobile UI Scale', [
+                    { value: '0.8', text: '80% (Small)' },
+                    { value: '1.0', text: '100% (Normal)' },
+                    { value: '1.25', text: '125% (Large)' },
+                    { value: '1.5', text: '150% (Extra Large)' }
+                ], '1.0'));
+                
                 body.appendChild(createToggle('opuc_staging_enabled', 'Enable Staging Ribbon', true));
                 body.appendChild(createInput('opuc_upload_shortcut', 'Clipboard Upload Shortcut', 'Alt+V', '<small style="color:var(--opuc-text-muted);">(e.g., Ctrl+V or Alt+V)</small>'));
-                // NEW: Firefox Workaround Toggle
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
                 body.appendChild(createToggle('opuc_intercept_drop', 'Intercept Drag & Drop', true));
                 
@@ -79,15 +92,14 @@
                     { value: 'picker', text: 'Open OS File Picker' },
                     { value: 'gallery', text: 'Open OPU Gallery' }
                 ], 'picker'));
-
-                body.appendChild(createInput('opuc_format_tag', 'Image Injection Format', '<img src="%url%">', '<small style="color:var(--opuc-text-muted);">(Use <b>%url%</b> as placeholder)</small>'));
+                body.appendChild(createInput('opuc_format_tag', 'Image Injection Format', '<img src="%url%">', '<small style="color:var(--opuc-text-muted);">(Use <b>%url%</b>)</small>'));
 
                 const footer = document.createElement('div');
                 footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end;';
                 
                 const saveBtn = document.createElement('button');
                 saveBtn.innerText = 'Save Settings';
-                saveBtn.style.cssText = 'background: var(--opuc-accent); color: #fff; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
+                saveBtn.style.cssText = 'background: var(--opuc-accent); color: #000; font-family: inherit; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
                 saveBtn.onclick = () => this.saveAndClose();
 
                 footer.appendChild(saveBtn);
@@ -108,6 +120,8 @@
         },
 
         saveAndClose: function() {
+            window.OPUcConfig.set('opuc_theme', document.getElementById('opuc_theme').value);
+            window.OPUcConfig.set('opuc_ui_scale', document.getElementById('opuc_ui_scale').value);
             window.OPUcConfig.set('opuc_staging_enabled', document.getElementById('opuc_staging_enabled').checked);
             window.OPUcConfig.set('opuc_upload_shortcut', document.getElementById('opuc_upload_shortcut').value);
             window.OPUcConfig.set('opuc_intercept_paste_urls', document.getElementById('opuc_intercept_paste_urls').checked);
@@ -116,9 +130,11 @@
             window.OPUcConfig.set('opuc_format_tag', document.getElementById('opuc_format_tag').value);
 
             if (window.OPUcUI) window.OPUcUI.toggleStaging(document.getElementById('opuc_staging_enabled').checked);
+            
+            // Instantly apply the new theme and scale!
+            if (window.OPUcTheme) window.OPUcTheme.refresh();
 
             this.close();
-            alert("Settings Saved! Please refresh the page to apply any new Keyboard Shortcuts.");
         }
     };
 })();
