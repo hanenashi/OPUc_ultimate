@@ -30,12 +30,9 @@
             get primaryAction() { return window.OPUcConfig.get('opuc_primary_action', 'picker'); },
             get formatTag() { return window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">'); },
             
-            // --- PHASE 1: UI & THEMING ---
-            get theme() { return window.OPUcConfig.get('opuc_theme', 'classic'); },
-            get uiScale() { 
-                const isMobile = window.innerWidth <= 768;
-                return window.OPUcConfig.get('opuc_ui_scale', isMobile ? 1.4 : 1.0); 
-            }
+            // NEW: Theme and UI Scaling
+            get themePreset() { return window.OPUcConfig.get('opuc_theme_preset', 'classic'); },
+            get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', 'auto'); }
         },
 
         state: { isLoggedIn: true },
