@@ -3,23 +3,72 @@
     'use strict';
 
     window.OPUcTheme = {
+        themes: {
+            classic: `
+                --opuc-bg-primary: #f0f0f0;
+                --opuc-bg-secondary: #ffffff;
+                --opuc-text-main: #333333;
+                --opuc-text-muted: #777777;
+                --opuc-accent: #FF9800;
+                --opuc-accent-hover: #F57C00;
+                --opuc-border: #cccccc;
+                --opuc-danger: #F44336;
+                --opuc-font: system-ui, -apple-system, sans-serif;
+            `,
+            dark: `
+                --opuc-bg-primary: #2b2b2b;
+                --opuc-bg-secondary: #1a1a1a;
+                --opuc-text-main: #ffffff;
+                --opuc-text-muted: #aaaaaa;
+                --opuc-accent: #FF9800;
+                --opuc-accent-hover: #e68a00;
+                --opuc-border: #444444;
+                --opuc-danger: #F44336;
+                --opuc-font: system-ui, -apple-system, sans-serif;
+            `,
+            contrast: `
+                --opuc-bg-primary: #000000;
+                --opuc-bg-secondary: #000000;
+                --opuc-text-main: #FFFF00;
+                --opuc-text-muted: #FFFFFF;
+                --opuc-accent: #00FF00;
+                --opuc-accent-hover: #00CC00;
+                --opuc-border: #FFFF00;
+                --opuc-danger: #FF0000;
+                --opuc-font: Tahoma, sans-serif;
+            `,
+            retro: `
+                --opuc-bg-primary: #0000AA;
+                --opuc-bg-secondary: #000000;
+                --opuc-text-main: #FFFFFF;
+                --opuc-text-muted: #AAAAAA;
+                --opuc-accent: #FF55FF;
+                --opuc-accent-hover: #FF5555;
+                --opuc-border: #55FFFF;
+                --opuc-danger: #FF5555;
+                --opuc-font: "Courier New", monospace;
+            `
+        },
+
         inject: function() {
-            const style = document.createElement('style');
-            style.id = 'opuc-theme-styles';
+            const currentTheme = window.OPUcConfig.settings.theme;
+            const scale = window.OPUcConfig.settings.uiScale;
+            const themeCSS = this.themes[currentTheme] || this.themes.classic;
+
+            let style = document.getElementById('opuc-theme-styles');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'opuc-theme-styles';
+                document.head.appendChild(style);
+            }
+
             style.innerHTML = `
-                /* --- CSS VARIABLES (Okoun Native Light Theme) --- */
                 :root {
-                    --opuc-bg-primary: #f0f0f0;
-                    --opuc-bg-secondary: #ffffff;
-                    --opuc-text-main: #333333;
-                    --opuc-text-muted: #777777;
-                    --opuc-accent: #FF9800;
-                    --opuc-accent-hover: #F57C00;
-                    --opuc-border: #cccccc;
-                    --opuc-danger: #F44336;
+                    ${themeCSS}
                     --opuc-success: #4CAF50;
                     --opuc-radius: 4px;
                     --opuc-z-index-overlay: 2147483647;
+                    --opuc-scale: ${scale};
                 }
 
                 #opuc-staging-area {
@@ -33,21 +82,29 @@
                     padding: 10px;
                     box-sizing: border-box;
                     color: var(--opuc-text-main);
+                    font-family: var(--opuc-font);
                 }
 
                 #opuc-staging-area.active {
-                    display: flex;
-                    gap: 10px;
-                    flex-wrap: wrap;
-                    align-items: center;
+                    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
                 }
 
                 .opuc-drag-active {
                     border: 2px dashed var(--opuc-accent) !important;
                     background-color: rgba(255, 152, 0, 0.1) !important;
                 }
+
+                /* Mobile scaling class for Modals */
+                .opuc-scalable {
+                    transform: scale(var(--opuc-scale));
+                    transform-origin: center center;
+                }
             `;
-            document.head.appendChild(style);
+            if (window.OPUcLog) window.OPUcLog.info(`Theme injected: ${currentTheme} at scale ${scale}x`);
+        },
+
+        refresh: function() {
+            this.inject();
         }
     };
 })();
