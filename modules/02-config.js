@@ -29,10 +29,10 @@
             get interceptDrop() { return window.OPUcConfig.get('opuc_intercept_drop', true); },
             get primaryAction() { return window.OPUcConfig.get('opuc_primary_action', 'picker'); },
             get formatTag() { return window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">'); },
-            
-            // NEW: Phase 1 Variables
             get theme() { return window.OPUcConfig.get('opuc_theme', 'classic'); },
-            get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); }
+            get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); },
+            // NEW: Gallery Thumbnail Size
+            get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); }
         },
 
         state: { isLoggedIn: true },
