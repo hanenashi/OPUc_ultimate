@@ -25,11 +25,17 @@
         settings: {
             get stagingEnabled() { return window.OPUcConfig.get('opuc_staging_enabled', true); },
             get uploadShortcut() { return window.OPUcConfig.get('opuc_upload_shortcut', 'Alt+V'); },
-            // NEW: The Firefox Ctrl+V workaround toggle
             get interceptPasteUrls() { return window.OPUcConfig.get('opuc_intercept_paste_urls', false); }, 
             get interceptDrop() { return window.OPUcConfig.get('opuc_intercept_drop', true); },
             get primaryAction() { return window.OPUcConfig.get('opuc_primary_action', 'picker'); },
-            get formatTag() { return window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">'); }
+            get formatTag() { return window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">'); },
+            
+            // --- PHASE 1: UI & THEMING ---
+            get theme() { return window.OPUcConfig.get('opuc_theme', 'classic'); },
+            get uiScale() { 
+                const isMobile = window.innerWidth <= 768;
+                return window.OPUcConfig.get('opuc_ui_scale', isMobile ? 1.4 : 1.0); 
+            }
         },
 
         state: { isLoggedIn: true },
