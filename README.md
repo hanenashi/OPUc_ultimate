@@ -20,9 +20,28 @@ Ensure you have a userscript manager installed (like [Tampermonkey](https://www.
 * **Custom Settings:** An in-page settings menu to configure your keyboard shortcuts, default click actions, and custom image injection formats (e.g., HTML vs. Radeox).
 * **Universal Compatibility:** Custom API wrappers ensure full compatibility across Chrome, Firefox, Tampermonkey, and Greasemonkey 4.
 
+## 🗺️ Roadmap & Upcoming Features
+
+**Phase 1: Visual Polish**
+- [ ] **Mobile UI Scaling:** Global `--opuc-scale` variable and Settings slider for high-res mobile displays.
+- [ ] **Theme Engine Expansion:** Pre-packaged themes (Okoun Classic, Night Mode, High Contrast, Retro 8-bit).
+
+**Phase 2: Staging Pre-Flight**
+- [ ] **Unobtrusive Metadata:** Display file size and resolution directly on staging thumbnails.
+- [ ] **Caption Engine:** Add text around images (e.g., descriptions) before batch uploading.
+- [ ] **Drag-to-Reorder:** Re-arrange the staging queue visually using HTML5 Drag-and-Drop.
+
+**Phase 3: Injection Arsenal**
+- [ ] **Format Quick-Select:** Dropdown inside the staging ribbon to change formats on the fly.
+- [ ] **Advanced Formats:** Pure URL, Standard `<img>`, Clickable `<a href>`, Clickable Thumbnail (OPU auto-thumb extraction), Markdown, and Radeox.
+
+**Phase 4: Power-User Upgrades**
+- [ ] **EXIF Privacy Stripper:** Client-side removal of GPS/camera data before upload.
+- [ ] **Client-Side Downscaling:** Auto-resize oversized mobile photos to save data and bypass server limits.
+- [ ] **Crash Recovery:** Serialize un-uploaded staging queues to IndexedDB to survive accidental tab closures.
+
 ## 📂 Project Structure
 
-```text
 OPUc_ultimate/
 ├── OPUc.user.js             # The Master Loader (Installs in userscript manager)
 ├── modules/
@@ -37,3 +56,9 @@ OPUc_ultimate/
 │   ├── 09-init.js           # Async Bootstrapper
 │   └── 10-settings.js       # User configuration modal and local storage manager
 └── README.md
+
+## 🛠️ Development & Debugging
+
+OPUc includes a heavy-duty logging engine. To view network requests, interceptor catches, and staging events, open your browser's Developer Tools (F12) and check the Console.
+
+To disable logging in production, change `CURRENT_LOG_LEVEL` in `modules/01-logger.js` to `LOG_LEVELS.OFF`.
