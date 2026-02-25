@@ -23,10 +23,12 @@
                 `;
 
                 const container = document.createElement('div');
+                container.className = 'opuc-scalable'; // Scales via CSS transform
                 container.style.cssText = `
                     width: 90%; max-width: 1000px; height: 85%; background: var(--opuc-bg-secondary);
                     border-radius: 8px; border: 1px solid var(--opuc-border);
                     display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    font-family: var(--opuc-font);
                 `;
 
                 const header = document.createElement('div');
@@ -59,7 +61,7 @@
 
                 const insertBtn = document.createElement('button');
                 insertBtn.innerText = 'Insert Selected';
-                insertBtn.style.cssText = 'background: var(--opuc-accent); color: #fff; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
+                insertBtn.style.cssText = 'background: var(--opuc-accent); color: #fff; font-family: inherit; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
                 insertBtn.onclick = () => this.insertSelected();
 
                 footer.appendChild(statusText);
