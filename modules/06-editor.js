@@ -2,7 +2,6 @@
 (function() {
     'use strict';
 
-    // Helper to format bytes into KB/MB cleanly
     const formatBytes = (bytes) => {
         if (!bytes || bytes === 0) return '0 B';
         const k = 1024;
@@ -22,7 +21,7 @@
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 150; // Bumped up resolution for the new larger tiles
+                    const MAX_WIDTH = 150; 
                     const MAX_HEIGHT = 150;
                     let width = img.width;
                     let height = img.height;
@@ -37,7 +36,6 @@
                     canvas.width = width; canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // Return the data URL AND the original pixel dimensions
                     callback(canvas.toDataURL('image/jpeg', 0.8), origWidth, origHeight);
                 };
                 img.src = e.target.result;
@@ -50,7 +48,6 @@
             if (!stagingItems) return;
             stagingItems.innerHTML = ''; 
             
-            // Clean array of nulls and rebuild visually
             this.queue = this.queue.filter(f => f !== null);
             
             this.queue.forEach((file, index) => {
@@ -64,41 +61,77 @@
             const container = document.createElement('div');
             container.className = 'opuc-stage-tile';
             container.dataset.index = index;
-            container.draggable = true; // Enables HTML5 Drag & Drop
+            container.draggable = true; 
             
             container.style.cssText = `
                 width: 120px; display: flex; flex-direction: column; 
                 border: 1px solid var(--opuc-border); border-radius: 4px; overflow: hidden; 
                 background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
-                cursor: grab; user-select: none; transition: transform 0.1s;
+                cursor: grab; user-select: none;
             `;
 
-            // --- DRAG TO REORDER EVENTS ---
+            // --- DRAG TO INSERT LOGIC ---
             container.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('text/plain', index);
                 setTimeout(() => container.style.opacity = '0.4', 0);
             });
-            container.addEventListener('dragend', () => container.style.opacity = '1');
+            
+            container.addEventListener('dragend', () => {
+                container.style.opacity = '1';
+                document.querySelectorAll('.opuc-stage-tile').forEach(el => {
+                    el.classList.remove('opuc-drag-left', 'opuc-drag-right');
+                });
+            });
+            
             container.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                container.style.border = '1px dashed var(--opuc-accent)';
+                const rect = container.getBoundingClientRect();
+                const midPoint = rect.left + rect.width / 2;
+                
+                // Clear sibling animations
+                document.querySelectorAll('.opuc-stage-tile').forEach(el => {
+                    if (el !== container) el.classList.remove('opuc-drag-left', 'opuc-drag-right');
+                });
+
+                // Apply squeeze animation based on cursor side
+                if (e.clientX < midPoint) {
+                    container.classList.add('opuc-drag-left');
+                    container.classList.remove('opuc-drag-right');
+                } else {
+                    container.classList.add('opuc-drag-right');
+                    container.classList.remove('opuc-drag-left');
+                }
             });
-            container.addEventListener('dragleave', () => container.style.border = '1px solid var(--opuc-border)');
+            
+            container.addEventListener('dragleave', () => {
+                container.classList.remove('opuc-drag-left', 'opuc-drag-right');
+            });
+            
             container.addEventListener('drop', (e) => {
                 e.preventDefault();
-                container.style.border = '1px solid var(--opuc-border)';
+                container.classList.remove('opuc-drag-left', 'opuc-drag-right');
+                
                 const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
                 
                 if (!isNaN(draggedIndex) && draggedIndex !== index) {
-                    // Swap array items and redraw the queue
-                    const temp = this.queue[draggedIndex];
-                    this.queue[draggedIndex] = this.queue[index];
-                    this.queue[index] = temp;
+                    const rect = container.getBoundingClientRect();
+                    const insertBefore = e.clientX < (rect.left + rect.width / 2);
+                    
+                    // Slice the old item out
+                    const itemToMove = this.queue.splice(draggedIndex, 1)[0];
+                    
+                    // Adjust insertion index
+                    let targetIndex = index;
+                    if (draggedIndex < index) targetIndex--; 
+                    if (!insertBefore) targetIndex++; 
+                    
+                    // Splice it back in at the new position
+                    this.queue.splice(targetIndex, 0, itemToMove);
                     this.renderAllStagedItems();
                 }
             });
 
-            // --- TOP HALF: IMAGE & CONTROLS ---
+            // --- UI CONSTRUCTION ---
             const topHalf = document.createElement('div');
             topHalf.style.cssText = 'position: relative; height: 90px; background: #000;';
 
@@ -122,7 +155,6 @@
 
             container.appendChild(topHalf);
 
-            // --- BOTTOM HALF: METADATA ---
             const bottomHalf = document.createElement('div');
             bottomHalf.style.cssText = 'padding: 4px 6px; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--opuc-border);';
 
@@ -138,14 +170,13 @@
             sizeSpan.innerText = formatBytes(file.size);
             
             const resSpan = document.createElement('span');
-            resSpan.innerText = '...'; // Placeholder until thumbnail generates
+            resSpan.innerText = '...'; 
 
             metaLbl.appendChild(sizeSpan);
             metaLbl.appendChild(resSpan);
             bottomHalf.appendChild(metaLbl);
             container.appendChild(bottomHalf);
 
-            // Generate thumbnail and apply dimensions
             this.createThumbnail(file, (thumbData, w, h) => {
                 imgPreview.src = thumbData;
                 imgPreview.style.opacity = '1';
@@ -221,10 +252,9 @@
             }
             
             this.isUploading = false;
-            this.renderAllStagedItems(); // Safely clears out completed items and resets UI
+            this.renderAllStagedItems(); 
         },
 
-        // NEW: Handles progress bar on main button when staging is disabled
         directUploadBatch: async function(filesArray) {
             if (window.OPUcLog) window.OPUcLog.info("Starting direct upload batch...");
             
@@ -232,7 +262,6 @@
             let completed = 0;
             const total = filesArray.length;
 
-            // Hook into the main OPUc button to show progress
             window.OPUcUI.setWorkingState(() => {
                 this.isUploading = false;
                 if (window.OPUcLog) window.OPUcLog.warn("Direct batch upload aborted by user.");
@@ -280,7 +309,6 @@
             });
             window.OPUcEditor.renderAllStagedItems();
         } else {
-            // Fires the new direct upload engine with the cancelable progress bar
             window.OPUcEditor.directUploadBatch(filesArray);
         }
     };
