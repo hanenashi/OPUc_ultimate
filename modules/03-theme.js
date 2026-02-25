@@ -53,6 +53,7 @@
         inject: function() {
             const currentTheme = window.OPUcConfig.settings.theme;
             const scale = window.OPUcConfig.settings.uiScale;
+            const thumbSize = window.OPUcConfig.settings.galleryThumbSize;
             const themeCSS = this.themes[currentTheme] || this.themes.classic;
 
             let style = document.getElementById('opuc-theme-styles');
@@ -69,6 +70,7 @@
                     --opuc-radius: 4px;
                     --opuc-z-index-overlay: 2147483647;
                     --opuc-scale: ${scale};
+                    --opuc-thumb-size: ${thumbSize};
                 }
 
                 #opuc-staging-area {
@@ -94,10 +96,14 @@
                     background-color: rgba(255, 152, 0, 0.1) !important;
                 }
 
-                /* Mobile scaling class for Modals */
+                /* Scaling Classes */
                 .opuc-scalable {
                     transform: scale(var(--opuc-scale));
                     transform-origin: center center;
+                }
+                
+                .opuc-origin-tl {
+                    transform-origin: top left !important;
                 }
             `;
             if (window.OPUcLog) window.OPUcLog.info(`Theme injected: ${currentTheme} at scale ${scale}x`);
