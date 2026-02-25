@@ -23,7 +23,7 @@
                 `;
 
                 const container = document.createElement('div');
-                container.className = 'opuc-scalable'; // Scales via CSS transform
+                // REMOVED .opuc-scalable here so the modal doesn't zoom out of bounds
                 container.style.cssText = `
                     width: 90%; max-width: 1000px; height: 85%; background: var(--opuc-bg-secondary);
                     border-radius: 8px; border: 1px solid var(--opuc-border);
@@ -61,7 +61,7 @@
 
                 const insertBtn = document.createElement('button');
                 insertBtn.innerText = 'Insert Selected';
-                insertBtn.style.cssText = 'background: var(--opuc-accent); color: #fff; font-family: inherit; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
+                insertBtn.style.cssText = 'background: var(--opuc-accent); color: #fff; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
                 insertBtn.onclick = () => this.insertSelected();
 
                 footer.appendChild(statusText);
@@ -131,7 +131,8 @@
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'opuc-gallery-item';
-                wrapper.style.cssText = 'width: 100px; height: 100px; flex-shrink: 0; border: 2px solid transparent; border-radius: 4px; overflow: hidden; cursor: pointer; transition: transform 0.1s; background: var(--opuc-bg-primary);';
+                // CHANGED: Uses CSS variable for size instead of fixed 100px
+                wrapper.style.cssText = 'width: var(--opuc-thumb-size); height: var(--opuc-thumb-size); flex-shrink: 0; border: 2px solid transparent; border-radius: 4px; overflow: hidden; cursor: pointer; transition: transform 0.1s; background: var(--opuc-bg-primary);';
                 
                 const img = document.createElement('img');
                 img.loading = 'lazy'; 
