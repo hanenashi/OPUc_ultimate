@@ -108,6 +108,8 @@
         buildContextMenu: function(wrapperElement, isLoggedIn) {
             const menu = document.createElement('div');
             menu.id = 'opuc-context-menu';
+            // Added scaling classes here:
+            menu.className = 'opuc-scalable opuc-origin-tl';
             menu.style.cssText = `
                 display: none; position: absolute; top: 110%; left: 0; 
                 background: var(--opuc-bg-secondary); border: 1px solid var(--opuc-border); 
@@ -182,7 +184,6 @@
             });
         },
 
-        // FIXED: Restored the missing toggleStaging function!
         toggleStaging: function(forceState = null) {
             const stagingArea = document.getElementById('opuc-staging-area');
             if (!stagingArea) return;
