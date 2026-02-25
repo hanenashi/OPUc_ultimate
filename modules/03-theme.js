@@ -91,22 +91,33 @@
                     display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
                 }
 
+                /* Squeeze Animation Classes for Drag & Drop */
+                .opuc-stage-tile {
+                    transition: margin 0.2s ease, opacity 0.2s ease;
+                }
+                .opuc-drag-left {
+                    margin-left: 20px !important;
+                    box-shadow: -10px 0 0 -6px var(--opuc-accent) !important;
+                }
+                .opuc-drag-right {
+                    margin-right: 20px !important;
+                    box-shadow: 10px 0 0 -6px var(--opuc-accent) !important;
+                }
+
+                /* Global text area drag state */
                 .opuc-drag-active {
                     border: 2px dashed var(--opuc-accent) !important;
                     background-color: rgba(255, 152, 0, 0.1) !important;
                 }
 
-                /* Scaling Classes */
+                /* Scaling Anchors */
                 .opuc-scalable {
                     transform: scale(var(--opuc-scale));
-                    transform-origin: center center;
                 }
-                
-                .opuc-origin-tl {
-                    transform-origin: top left !important;
+                .opuc-origin-tr {
+                    transform-origin: top right !important;
                 }
             `;
-            if (window.OPUcLog) window.OPUcLog.info(`Theme injected: ${currentTheme} at scale ${scale}x`);
         },
 
         refresh: function() {
