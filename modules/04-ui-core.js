@@ -108,10 +108,10 @@
         buildContextMenu: function(wrapperElement, isLoggedIn) {
             const menu = document.createElement('div');
             menu.id = 'opuc-context-menu';
-            // Added scaling classes here:
-            menu.className = 'opuc-scalable opuc-origin-tl';
+            // Scale and anchor to the Top Right so it expands downwards and leftwards
+            menu.className = 'opuc-scalable opuc-origin-tr';
             menu.style.cssText = `
-                display: none; position: absolute; top: 110%; left: 0; 
+                display: none; position: absolute; top: 110%; right: 0; 
                 background: var(--opuc-bg-secondary); border: 1px solid var(--opuc-border); 
                 border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
                 z-index: var(--opuc-z-index-overlay, 2147483647); min-width: 150px; overflow: hidden;
