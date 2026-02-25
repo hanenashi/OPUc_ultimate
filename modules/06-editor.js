@@ -2,9 +2,18 @@
 (function() {
     'use strict';
 
+    // Helper to format bytes into KB/MB cleanly
+    const formatBytes = (bytes) => {
+        if (!bytes || bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    };
+
     window.OPUcEditor = {
         queue: [], 
-        isUploading: false, // Flag to track upload state
+        isUploading: false, 
 
         createThumbnail: function(file, callback) {
             const reader = new FileReader();
@@ -13,10 +22,12 @@
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 100;
-                    const MAX_HEIGHT = 100;
+                    const MAX_WIDTH = 150; // Bumped up resolution for the new larger tiles
+                    const MAX_HEIGHT = 150;
                     let width = img.width;
                     let height = img.height;
+                    const origWidth = width;
+                    const origHeight = height;
 
                     if (width > height) {
                         if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
@@ -25,43 +36,128 @@
                     }
                     canvas.width = width; canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    callback(canvas.toDataURL('image/jpeg', 0.8));
+                    
+                    // Return the data URL AND the original pixel dimensions
+                    callback(canvas.toDataURL('image/jpeg', 0.8), origWidth, origHeight);
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         },
 
+        renderAllStagedItems: function() {
+            const stagingItems = document.getElementById('opuc-staging-items');
+            if (!stagingItems) return;
+            stagingItems.innerHTML = ''; 
+            
+            // Clean array of nulls and rebuild visually
+            this.queue = this.queue.filter(f => f !== null);
+            
+            this.queue.forEach((file, index) => {
+                const tile = this.renderStagedItem(file, index);
+                stagingItems.appendChild(tile);
+            });
+            this.refreshControls();
+        },
+
         renderStagedItem: function(file, index) {
             const container = document.createElement('div');
-            container.style.cssText = 'position: relative; width: 80px; height: 80px; border: 1px solid var(--opuc-border); border-radius: 4px; overflow: hidden; background: #000; box-shadow: 0 2px 5px rgba(0,0,0,0.2);';
+            container.className = 'opuc-stage-tile';
             container.dataset.index = index;
+            container.draggable = true; // Enables HTML5 Drag & Drop
+            
+            container.style.cssText = `
+                width: 120px; display: flex; flex-direction: column; 
+                border: 1px solid var(--opuc-border); border-radius: 4px; overflow: hidden; 
+                background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+                cursor: grab; user-select: none; transition: transform 0.1s;
+            `;
+
+            // --- DRAG TO REORDER EVENTS ---
+            container.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', index);
+                setTimeout(() => container.style.opacity = '0.4', 0);
+            });
+            container.addEventListener('dragend', () => container.style.opacity = '1');
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                container.style.border = '1px dashed var(--opuc-accent)';
+            });
+            container.addEventListener('dragleave', () => container.style.border = '1px solid var(--opuc-border)');
+            container.addEventListener('drop', (e) => {
+                e.preventDefault();
+                container.style.border = '1px solid var(--opuc-border)';
+                const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                
+                if (!isNaN(draggedIndex) && draggedIndex !== index) {
+                    // Swap array items and redraw the queue
+                    const temp = this.queue[draggedIndex];
+                    this.queue[draggedIndex] = this.queue[index];
+                    this.queue[index] = temp;
+                    this.renderAllStagedItems();
+                }
+            });
+
+            // --- TOP HALF: IMAGE & CONTROLS ---
+            const topHalf = document.createElement('div');
+            topHalf.style.cssText = 'position: relative; height: 90px; background: #000;';
 
             const imgPreview = document.createElement('img');
-            imgPreview.style.cssText = 'width: 100%; height: 100%; object-fit: cover; opacity: 0.5; transition: opacity 0.2s;';
-            container.appendChild(imgPreview);
-
-            this.createThumbnail(file, (thumbData) => {
-                imgPreview.src = thumbData;
-                imgPreview.style.opacity = '1';
-            });
+            imgPreview.style.cssText = 'width: 100%; height: 100%; object-fit: cover; opacity: 0.5; transition: opacity 0.2s; pointer-events: none;';
+            topHalf.appendChild(imgPreview);
 
             const removeBtn = document.createElement('button');
             removeBtn.innerHTML = '✖';
-            removeBtn.style.cssText = 'position: absolute; top: 2px; right: 2px; background: rgba(244, 67, 54, 0.9); color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;';
-            removeBtn.onclick = (e) => {
-                e.preventDefault();
-                this.removeFromQueue(index, container);
-            };
+            removeBtn.title = 'Remove';
+            removeBtn.style.cssText = 'position: absolute; top: 4px; left: 4px; background: rgba(244, 67, 54, 0.9); color: white; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;';
+            removeBtn.onclick = (e) => { e.preventDefault(); this.removeFromQueue(index); };
+            topHalf.appendChild(removeBtn);
 
-            container.appendChild(removeBtn);
+            const editBtn = document.createElement('button');
+            editBtn.innerHTML = '✏️';
+            editBtn.title = 'Edit Caption/Format';
+            editBtn.style.cssText = 'position: absolute; top: 4px; right: 4px; background: rgba(255, 152, 0, 0.9); color: black; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;';
+            editBtn.onclick = (e) => { e.preventDefault(); alert("Caption editor coming in next update!"); };
+            topHalf.appendChild(editBtn);
+
+            container.appendChild(topHalf);
+
+            // --- BOTTOM HALF: METADATA ---
+            const bottomHalf = document.createElement('div');
+            bottomHalf.style.cssText = 'padding: 4px 6px; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--opuc-border);';
+
+            const nameLbl = document.createElement('div');
+            nameLbl.style.cssText = 'font-size: 10px; color: var(--opuc-text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold;';
+            nameLbl.innerText = file.name || 'clipboard_img';
+            bottomHalf.appendChild(nameLbl);
+
+            const metaLbl = document.createElement('div');
+            metaLbl.style.cssText = 'font-size: 9px; color: var(--opuc-text-muted); display: flex; justify-content: space-between;';
+            
+            const sizeSpan = document.createElement('span');
+            sizeSpan.innerText = formatBytes(file.size);
+            
+            const resSpan = document.createElement('span');
+            resSpan.innerText = '...'; // Placeholder until thumbnail generates
+
+            metaLbl.appendChild(sizeSpan);
+            metaLbl.appendChild(resSpan);
+            bottomHalf.appendChild(metaLbl);
+            container.appendChild(bottomHalf);
+
+            // Generate thumbnail and apply dimensions
+            this.createThumbnail(file, (thumbData, w, h) => {
+                imgPreview.src = thumbData;
+                imgPreview.style.opacity = '1';
+                resSpan.innerText = `${w}x${h}`;
+            });
+
             return container;
         },
 
-        removeFromQueue: function(index, visualElement) {
+        removeFromQueue: function(index) {
             this.queue[index] = null; 
-            visualElement.remove();
-            this.refreshControls();
+            this.renderAllStagedItems();
         },
 
         refreshControls: function() {
@@ -75,13 +171,12 @@
                 controls.innerHTML = ''; 
                 
                 const uploadBtn = document.createElement('button');
-                uploadBtn.innerHTML = `Upload All (${activeItems})`; // Emoji removed
+                uploadBtn.innerHTML = `Upload All (${activeItems})`; 
                 uploadBtn.style.cssText = 'background: var(--opuc-accent); color: #000; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background-image 0.2s linear;';
                 
                 uploadBtn.onclick = async (e) => {
                     e.preventDefault();
                     if (this.isUploading) {
-                        // User clicked Cancel while it was uploading
                         this.isUploading = false; 
                         if (window.OPUcLog) window.OPUcLog.warn("Batch upload aborted by user.");
                         return;
@@ -102,14 +197,13 @@
             this.isUploading = true;
             let completed = 0;
 
-            // Turn Upload button into Cancel/Progress bar
             uploadBtn.innerHTML = '✖ Cancel';
             uploadBtn.style.setProperty('background-image', 'linear-gradient(90deg, #F44336 0%, #aaa 0%)', 'important');
             uploadBtn.style.setProperty('color', '#fff', 'important');
             uploadBtn.style.setProperty('text-shadow', '1px 1px 1px rgba(0,0,0,0.5)', 'important');
 
             for (let i = 0; i < this.queue.length; i++) {
-                if (!this.isUploading) break; // User clicked Cancel
+                if (!this.isUploading) break; 
 
                 const file = this.queue[i];
                 if (file !== null) {
@@ -118,9 +212,7 @@
                         const visualItem = document.querySelector(`div[data-index="${i}"]`);
                         if (visualItem) visualItem.style.opacity = '0.3'; 
                         
-                        // Set to null so it doesn't get re-uploaded if the batch is cancelled
                         this.queue[i] = null; 
-
                         completed++;
                         const pct = Math.round((completed / itemsToUpload) * 100);
                         uploadBtn.style.setProperty('background-image', `linear-gradient(90deg, #F44336 ${pct}%, #aaa ${pct}%)`, 'important');
@@ -128,25 +220,41 @@
                 }
             }
             
-            if (!this.isUploading) {
-                // If cancelled, keep the remaining queue so they don't lose data
-                this.queue = this.queue.filter(f => f !== null); 
-            } else {
-                // Fully finished
-                this.queue = [];
-                const stagingItems = document.getElementById('opuc-staging-items');
-                if (stagingItems) stagingItems.innerHTML = '';
+            this.isUploading = false;
+            this.renderAllStagedItems(); // Safely clears out completed items and resets UI
+        },
+
+        // NEW: Handles progress bar on main button when staging is disabled
+        directUploadBatch: async function(filesArray) {
+            if (window.OPUcLog) window.OPUcLog.info("Starting direct upload batch...");
+            
+            this.isUploading = true;
+            let completed = 0;
+            const total = filesArray.length;
+
+            // Hook into the main OPUc button to show progress
+            window.OPUcUI.setWorkingState(() => {
+                this.isUploading = false;
+                if (window.OPUcLog) window.OPUcLog.warn("Direct batch upload aborted by user.");
+            });
+
+            for (const file of filesArray) {
+                if (!this.isUploading) break;
+                try {
+                    await window.OPUcAPI.upload(file);
+                    completed++;
+                    window.OPUcUI.updateProgress(completed, total);
+                } catch (err) {}
             }
             
             this.isUploading = false;
-            this.refreshControls(); // Re-draws the button or hides the staging area
+            window.OPUcUI.resetButtonState();
         }
     };
 
     window.OPUcCore = window.OPUcCore || {};
     window.OPUcCore.handleIncomingFiles = function(files) {
         const stagingEnabled = window.OPUcConfig.settings.stagingEnabled;
-        const stagingItems = document.getElementById('opuc-staging-items');
         const isLoggedIn = window.OPUcConfig.state.isLoggedIn;
 
         let filesArray = Array.from(files);
@@ -165,19 +273,15 @@
             }
         }
 
-        filesArray.forEach(file => {
-            if (stagingEnabled) {
-                window.OPUcUI.toggleStaging(true);
-                const newIndex = window.OPUcEditor.queue.length;
+        if (stagingEnabled) {
+            window.OPUcUI.toggleStaging(true);
+            filesArray.forEach(file => {
                 window.OPUcEditor.queue.push(file);
-                
-                const visualItem = window.OPUcEditor.renderStagedItem(file, newIndex);
-                if (stagingItems) stagingItems.appendChild(visualItem);
-                
-                window.OPUcEditor.refreshControls();
-            } else {
-                window.OPUcAPI.upload(file);
-            }
-        });
+            });
+            window.OPUcEditor.renderAllStagedItems();
+        } else {
+            // Fires the new direct upload engine with the cancelable progress bar
+            window.OPUcEditor.directUploadBatch(filesArray);
+        }
     };
 })();
