@@ -42,6 +42,7 @@ Ensure you have a userscript manager installed (like [Tampermonkey](https://www.
 
 ## 📂 Project Structure
 
+```text
 OPUc_ultimate/
 ├── OPUc.user.js             # The Master Loader (Installs in userscript manager)
 ├── modules/
@@ -56,6 +57,7 @@ OPUc_ultimate/
 │   ├── 09-init.js           # Async Bootstrapper
 │   └── 10-settings.js       # User configuration modal and local storage manager
 └── README.md
+```
 
 ## 🛠️ Development & Debugging
 
