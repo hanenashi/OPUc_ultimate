@@ -50,7 +50,6 @@
             stagingArea.appendChild(stagingControls);
             textArea.parentNode.insertBefore(stagingArea, textArea);
 
-            // FIXED: Removed "yui-submit-button" so Okoun doesn't hijack this span
             const outerSpan = document.createElement('span');
             outerSpan.className = 'yui-button default'; 
             outerSpan.style.position = 'relative'; 
@@ -58,7 +57,6 @@
             const innerSpan = document.createElement('span');
             innerSpan.className = 'first-child';
 
-            // FIXED: Removed "submit" class so Okoun's form scripts ignore it
             const opucBtn = document.createElement('button');
             opucBtn.className = 'opuc-main-btn'; 
             opucBtn.type = 'button';
@@ -91,7 +89,14 @@
                     return;
                 }
                 if (menu.style.display === 'block') { menu.style.display = 'none'; return; }
-                if (window.OPUcConfig.settings.primaryAction === 'picker') fileInput.click();
+                
+                // FIXED: Now correctly handles both 'picker' and 'gallery' actions
+                const action = window.OPUcConfig.settings.primaryAction;
+                if (action === 'picker') {
+                    fileInput.click();
+                } else if (action === 'gallery') {
+                    if (window.OPUcGallery) window.OPUcGallery.open();
+                }
             });
 
             opucBtn.addEventListener('contextmenu', (e) => {
