@@ -129,7 +129,6 @@
             const file = this.queue[index];
             if (!file) return;
 
-            // Detect current form's bodyType for smart dropdowns
             let currentBodyType = 'html';
             if (window.OPUcConfig.state.activeTextArea) {
                 const form = window.OPUcConfig.state.activeTextArea.closest('.post.content') || document.getElementById('article-form-main');
@@ -188,7 +187,6 @@
             const fmtSelect = document.createElement('select');
             fmtSelect.style.cssText = 'width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: inherit; outline: none; box-sizing: border-box;';
             
-            // SMART FORMAT PRESETS based on bodyType
             let options = [{ val: '', text: '-- Use Global Default --' }];
             if (currentBodyType === 'html') {
                 options.push({ val: '%url%', text: 'Pure URL' }, { val: '<img src="%url%">', text: 'Image (<img>)' }, { val: '<a href="%url%">%url%</a>', text: 'Link (<a>)' }, { val: '<a href="%url%"><img src="%thumb%"></a>', text: 'Linked Thumbnail' });
@@ -230,8 +228,7 @@
             modal.appendChild(container); document.body.appendChild(modal);
         },
 
-        // HELPER: Generates the 2006 Okoun YUI Button span sandwich
-        createYUIButton: function(text, id, onClick) {
+        createYUIButton: function(text, customClass, onClick) {
             const outerSpan = document.createElement('span');
             outerSpan.className = 'yui-button default';
             outerSpan.style.cssText = 'position: relative; margin-left: 8px;'; 
@@ -240,7 +237,7 @@
             innerSpan.className = 'first-child';
             
             const btn = document.createElement('button');
-            if (id) btn.id = id;
+            if (customClass) btn.classList.add(customClass); // FIXED: Používá class místo id
             btn.type = 'button';
             btn.innerHTML = text;
             btn.style.cssText = 'user-select: none; cursor: pointer; font-weight: bold; transition: background-image 0.2s linear;';
@@ -310,7 +307,7 @@
 
         flushQueue: async function(itemsToUpload) {
             this.isUploading = true; let completed = 0;
-            document.querySelectorAll('#opuc-upload-btn').forEach(btn => {
+            document.querySelectorAll('.opuc-upload-btn').forEach(btn => {
                 btn.innerHTML = '✖ Cancel';
                 btn.style.setProperty('background-image', 'linear-gradient(90deg, #F44336 0%, #aaa 0%)', 'important');
                 btn.style.setProperty('color', '#fff', 'important');
@@ -322,18 +319,20 @@
                 if (file !== null) {
                     try {
                         const metadata = { caption: file.opucCaption || '', formatOverride: file.opucFormatOverride || '' };
-                        
-                        // We pass the metadata to API, and checking isLastItem to not add giant gaps at the very end
                         const isLastItem = (completed === itemsToUpload - 1);
+                        
+                        // FIXED: Očekává plnohodnotné propadnutí isLastItem až dolů do injekce
                         await window.OPUcAPI.upload(file, metadata, isLastItem); 
                         
                         document.querySelectorAll(`.opuc-stage-tile[data-index="${i}"]`).forEach(t => t.style.opacity = '0.3');
                         this.queue[i] = null; completed++;
                         const pct = Math.round((completed / itemsToUpload) * 100);
-                        document.querySelectorAll('#opuc-upload-btn').forEach(btn => {
+                        document.querySelectorAll('.opuc-upload-btn').forEach(btn => {
                             btn.style.setProperty('background-image', `linear-gradient(90deg, #F44336 ${pct}%, #aaa ${pct}%)`, 'important');
                         });
-                    } catch (err) {}
+                    } catch (err) {
+                        console.error("OPUc Upload/Inject Error:", err);
+                    }
                 }
             }
             this.isUploading = false; this.renderAllStagedItems(); 
@@ -348,7 +347,9 @@
                     const isLastItem = (i === filesArray.length - 1);
                     await window.OPUcAPI.upload(filesArray[i], {}, isLastItem); 
                     completed++; window.OPUcUI.updateProgress(completed, total);
-                } catch (err) {}
+                } catch (err) {
+                    console.error("OPUc Direct Upload/Inject Error:", err);
+                }
             }
             this.isUploading = false; window.OPUcUI.resetButtonState();
         }

@@ -17,7 +17,7 @@
             });
         },
 
-        upload: async function(file, metadata = {}) {
+        upload: async function(file, metadata = {}, isLastItem = true) { // FIXED: Přidáno isLastItem
             const formData = new FormData();
             formData.append('obrazek[0]', file);
             formData.append('sizep', '0');      
@@ -30,8 +30,18 @@
                     onload: function(response) {
                         if (response.status === 200) {
                             const finalLink = window.OPUcAPI.extractLinkFromResponse(response.responseText);
-                            if (finalLink) resolve(finalLink);
-                            else reject("Extraction failed");
+                            if (finalLink) {
+                                try {
+                                    window.OPUcAPI.injectIntoOkoun(finalLink, metadata, isLastItem);
+                                    resolve(finalLink);
+                                } catch (e) {
+                                    console.error("OPUc Injection Math Error:", e);
+                                    reject(e);
+                                }
+                            } else {
+                                console.error("OPUc Extraction Error: Could not parse link from OPU HTML.");
+                                reject("Extraction failed");
+                            }
                         } else reject(`HTTP Error ${response.status}`);
                     },
                     onerror: function(err) { reject(err); }
@@ -50,11 +60,9 @@
             return null;
         },
 
-        // NEW: Shared math engine for building the formatted string
         buildTag: function(imageUrl, metadata = {}, currentBodyType, isLastItem) {
             let formatString = metadata.formatOverride || window.OPUcConfig.settings.formatTag;
             
-            // Auto-detect based on form
             if (formatString === 'auto') {
                 if (currentBodyType === 'html') formatString = '<img src="%url%">';
                 else if (currentBodyType === 'radeox') formatString = '[img:%url%]';
@@ -63,11 +71,9 @@
                 else formatString = '<img src="%url%">';
             }
 
-            // OPU natively uses /t/ instead of /p/ for thumbnails
             let thumbUrl = imageUrl.replace('/p/', '/t/');
             let formattedTag = formatString.replace(/%url%/g, imageUrl).replace(/%thumb%/g, thumbUrl);
 
-            // Stitch Caption 
             if (metadata.caption) {
                 const pos = window.OPUcConfig.settings.captionPosition; 
                 const spc = window.OPUcConfig.settings.captionSpacing; 
@@ -80,7 +86,6 @@
                 else formattedTag = formattedTag + sep + metadata.caption;
             }
             
-            // Append spacing between multiple uploads
             if (!isLastItem) {
                 const betSpc = window.OPUcConfig.settings.betweenSpacing;
                 let finalSep = (currentBodyType === 'html') ? '<br><br>\n' : '\n\n';
@@ -90,7 +95,7 @@
                 else if (betSpc === 'nl2') finalSep = '\n\n';
                 formattedTag += finalSep;
             } else {
-                formattedTag += '\n'; // Just one newline for the very end
+                formattedTag += '\n'; 
             }
             
             return formattedTag;
@@ -110,7 +115,6 @@
                 if (select) currentBodyType = select.value;
             }
 
-            // Calls the pure string builder
             const formattedTag = this.buildTag(imageUrl, metadata, currentBodyType, isLastItem);
             
             const startPos = textArea.selectionStart;
