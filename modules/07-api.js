@@ -20,7 +20,7 @@
             });
         },
 
-        upload: async function(file) {
+        upload: async function(file, metadata = {}) {
             const formData = new FormData();
             formData.append('obrazek[0]', file);
             formData.append('sizep', '0');      
@@ -34,7 +34,7 @@
                         if (response.status === 200) {
                             const finalLink = window.OPUcAPI.extractLinkFromResponse(response.responseText);
                             if (finalLink) {
-                                window.OPUcAPI.injectIntoOkoun(finalLink);
+                                window.OPUcAPI.injectIntoOkoun(finalLink, metadata);
                                 resolve(finalLink);
                             } else reject("Extraction failed");
                         } else reject(`HTTP Error ${response.status}`);
@@ -55,18 +55,35 @@
             return null;
         },
 
-        injectIntoOkoun: function(imageUrl) {
-            // MULTI-INSTANCE TARGETING
+        injectIntoOkoun: function(imageUrl, metadata = {}) {
             let textArea = window.OPUcConfig.state.activeTextArea;
-            
-            // Fallback just in case they never focused a box before clicking inject from gallery
             if (!textArea) {
-                textArea = document.getElementById('post-body'); // Master form fallback
+                textArea = document.getElementById('post-body'); 
                 if(!textArea) return;
             }
 
-            const formatString = window.OPUcConfig.settings.formatTag;
-            const formattedTag = formatString.replace(/%url%/g, imageUrl) + '\n';
+            // Generate Base Tag (Use Override or Global Default)
+            let formatString = metadata.formatOverride || window.OPUcConfig.settings.formatTag;
+            let formattedTag = formatString.replace(/%url%/g, imageUrl);
+
+            // Stitch Caption if it exists
+            if (metadata.caption) {
+                const pos = window.OPUcConfig.settings.captionPosition; 
+                const spc = window.OPUcConfig.settings.captionSpacing; 
+                
+                let sep = '\n';
+                if (spc === 'br') sep = '<br>';
+                else if (spc === 'br2') sep = '<br><br>';
+                else if (spc === 'space') sep = ' ';
+
+                if (pos === 'above') {
+                    formattedTag = metadata.caption + sep + formattedTag;
+                } else {
+                    formattedTag = formattedTag + sep + metadata.caption;
+                }
+            }
+            
+            formattedTag += '\n'; // Add trailing break to separate multiple uploads
             
             const startPos = textArea.selectionStart;
             const endPos = textArea.selectionEnd;

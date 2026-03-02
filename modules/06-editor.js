@@ -23,16 +23,10 @@
                     const ctx = canvas.getContext('2d');
                     const MAX_WIDTH = 150; 
                     const MAX_HEIGHT = 150;
-                    let width = img.width;
-                    let height = img.height;
-                    const origWidth = width;
-                    const origHeight = height;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                    } else {
-                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                    }
+                    let width = img.width; let height = img.height;
+                    const origWidth = width; const origHeight = height;
+                    if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                    else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
                     canvas.width = width; canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
                     callback(canvas.toDataURL('image/jpeg', 0.8), origWidth, origHeight);
@@ -42,10 +36,8 @@
             reader.readAsDataURL(file);
         },
 
-        // MULTI-INSTANCE RENDERER: Updates ALL staging areas on the page
         renderAllStagedItems: function() {
             this.queue = this.queue.filter(f => f !== null);
-            
             const allStagingContainers = document.querySelectorAll('.opuc-staging-items');
             allStagingContainers.forEach(container => {
                 container.innerHTML = ''; 
@@ -101,7 +93,7 @@
                     if (draggedIndex < index) targetIndex--; 
                     if (!insertBefore) targetIndex++; 
                     this.queue.splice(targetIndex, 0, itemToMove);
-                    this.renderAllStagedItems(); // Triggers global refresh
+                    this.renderAllStagedItems();
                 }
             });
 
@@ -118,10 +110,13 @@
             removeBtn.onclick = (e) => { e.preventDefault(); this.removeFromQueue(index); };
             topHalf.appendChild(removeBtn);
 
+            // THE EDIT BUBBLE
+            const hasCaption = !!file.opucCaption || !!file.opucFormatOverride;
             const editBtn = document.createElement('button');
-            editBtn.innerHTML = '✏️';
-            editBtn.style.cssText = 'position: absolute; top: 4px; right: 4px; background: rgba(255, 152, 0, 0.9); color: black; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;';
-            editBtn.onclick = (e) => { e.preventDefault(); alert("Caption editor coming soon!"); };
+            editBtn.innerHTML = hasCaption ? '💬' : '✏️';
+            editBtn.title = hasCaption ? (file.opucCaption || 'Custom Format Active') : 'Add Caption / Format Override';
+            editBtn.style.cssText = `position: absolute; top: 4px; right: 4px; background: ${hasCaption ? 'rgba(76, 175, 80, 0.95)' : 'rgba(255, 152, 0, 0.9)'}; color: ${hasCaption ? '#fff' : '#000'}; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
+            editBtn.onclick = (e) => { e.preventDefault(); this.openCaptionModal(index); };
             topHalf.appendChild(editBtn);
 
             container.appendChild(topHalf);
@@ -149,6 +144,109 @@
             return container;
         },
 
+        // NEW: The Caption & Override Editor Modal
+        openCaptionModal: function(index) {
+            const file = this.queue[index];
+            if (!file) return;
+
+            let modal = document.getElementById('opuc-caption-modal');
+            if (modal) modal.remove(); // Rebuild fresh each time
+
+            modal = document.createElement('div');
+            modal.id = 'opuc-caption-modal';
+            modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);`;
+
+            const container = document.createElement('div');
+            container.className = 'opuc-scalable'; 
+            container.style.cssText = `width: 90%; max-width: 400px; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
+
+            const header = document.createElement('div');
+            header.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; font-weight: bold;';
+            header.innerHTML = `<span>✏️ Edit File</span>`;
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '✖';
+            closeBtn.style.cssText = 'background: none; border: none; color: var(--opuc-text-main); font-size: 16px; cursor: pointer;';
+            closeBtn.onclick = () => modal.remove();
+            header.appendChild(closeBtn);
+
+            const body = document.createElement('div');
+            body.style.cssText = 'padding: 15px; display: flex; flex-direction: column; gap: 15px;';
+
+            const infoRow = document.createElement('div');
+            infoRow.style.cssText = 'display: flex; gap: 15px; align-items: center;';
+            
+            const imgPreview = document.createElement('img');
+            imgPreview.style.cssText = 'width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid var(--opuc-border); background: #000;';
+            this.createThumbnail(file, (data) => imgPreview.src = data);
+            
+            const fileData = document.createElement('div');
+            fileData.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis;';
+            fileData.innerHTML = `<b style="color:var(--opuc-text-main);">${file.name}</b><br>${formatBytes(file.size)}`;
+            
+            infoRow.appendChild(imgPreview);
+            infoRow.appendChild(fileData);
+            body.appendChild(infoRow);
+
+            const capLabel = document.createElement('label');
+            capLabel.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted);';
+            capLabel.innerText = 'Image Caption:';
+            const capInput = document.createElement('textarea');
+            capInput.rows = 2;
+            capInput.value = file.opucCaption || '';
+            capInput.placeholder = 'e.g., Dusky Thrush taken at Odori';
+            capInput.style.cssText = 'width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: inherit; resize: vertical; box-sizing: border-box; outline: none; margin-top: 4px;';
+            
+            const capWrapper = document.createElement('div');
+            capWrapper.appendChild(capLabel); capWrapper.appendChild(capInput);
+            body.appendChild(capWrapper);
+
+            const fmtLabel = document.createElement('label');
+            fmtLabel.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted); display: block; margin-bottom: 4px;';
+            fmtLabel.innerText = 'Format Override (Optional):';
+            const fmtSelect = document.createElement('select');
+            fmtSelect.style.cssText = 'width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: inherit; outline: none; box-sizing: border-box;';
+            
+            const options = [
+                { val: '', text: '-- Use Global Default --' },
+                { val: '<img src="%url%">', text: 'HTML (<img>)' },
+                { val: '<a href="%url%">%url%</a>', text: 'HTML (Link)' },
+                { val: '[img:%url%]', text: 'Radeox ([img])' },
+                { val: '![image](%url%)', text: 'Markdown (![])' }
+            ];
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt.val; el.text = opt.text;
+                if (file.opucFormatOverride === opt.val) el.selected = true;
+                fmtSelect.appendChild(el);
+            });
+            
+            const fmtWrapper = document.createElement('div');
+            fmtWrapper.appendChild(fmtLabel); fmtWrapper.appendChild(fmtSelect);
+            body.appendChild(fmtWrapper);
+
+            const footer = document.createElement('div');
+            footer.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px;';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.innerText = 'Cancel';
+            cancelBtn.style.cssText = 'padding: 6px 12px; border-radius: 4px; border: 1px solid var(--opuc-border); background: transparent; color: var(--opuc-text-main); cursor: pointer;';
+            cancelBtn.onclick = () => modal.remove();
+
+            const saveBtn = document.createElement('button');
+            saveBtn.innerText = 'Save';
+            saveBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
+            saveBtn.onclick = () => {
+                file.opucCaption = capInput.value.trim();
+                file.opucFormatOverride = fmtSelect.value;
+                modal.remove();
+                this.renderAllStagedItems(); 
+            };
+
+            footer.appendChild(cancelBtn); footer.appendChild(saveBtn);
+            container.appendChild(header); container.appendChild(body); container.appendChild(footer);
+            modal.appendChild(container); document.body.appendChild(modal);
+        },
+
         removeFromQueue: function(index) {
             this.queue[index] = null; 
             this.renderAllStagedItems();
@@ -169,7 +267,6 @@
                     
                     uploadBtn.onclick = async (e) => {
                         e.preventDefault();
-                        // Find the EXACT textarea this specific "Upload All" button belongs to
                         const parentForm = uploadBtn.closest('.post.content') || document.getElementById('article-form-main');
                         const targetTextArea = parentForm.querySelector('textarea[name="body"]');
                         window.OPUcConfig.state.activeTextArea = targetTextArea;
@@ -200,7 +297,13 @@
                 const file = this.queue[i];
                 if (file !== null) {
                     try {
-                        await window.OPUcAPI.upload(file);
+                        // Extract metadata from the file object
+                        const metadata = {
+                            caption: file.opucCaption || '',
+                            formatOverride: file.opucFormatOverride || ''
+                        };
+                        
+                        await window.OPUcAPI.upload(file, metadata); // Pass to API
                         document.querySelectorAll(`.opuc-stage-tile[data-index="${i}"]`).forEach(t => t.style.opacity = '0.3');
                         this.queue[i] = null; 
                         completed++;
@@ -223,7 +326,7 @@
             for (const file of filesArray) {
                 if (!this.isUploading) break;
                 try {
-                    await window.OPUcAPI.upload(file);
+                    await window.OPUcAPI.upload(file, {}); // Empty metadata for direct upload
                     completed++;
                     window.OPUcUI.updateProgress(completed, total);
                 } catch (err) {}

@@ -28,16 +28,17 @@
             get interceptPasteUrls() { return window.OPUcConfig.get('opuc_intercept_paste_urls', false); }, 
             get interceptDrop() { return window.OPUcConfig.get('opuc_intercept_drop', true); },
             get primaryAction() { return window.OPUcConfig.get('opuc_primary_action', 'picker'); },
-            get formatTag() { return window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">'); },
             get theme() { return window.OPUcConfig.get('opuc_theme', 'classic'); },
             get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); },
-            get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); }
+            get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); },
+            
+            // Formatting & Captions
+            get formatTag() { return window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">'); },
+            get captionPosition() { return window.OPUcConfig.get('opuc_caption_position', 'below'); },
+            get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'br2'); }
         },
 
-        state: { 
-            isLoggedIn: true,
-            activeTextArea: null // Tracks which text box the user is currently using
-        },
+        state: { isLoggedIn: true, activeTextArea: null },
 
         api: {
             upload: 'https://opu.peklo.biz/opupload.php',
