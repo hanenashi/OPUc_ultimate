@@ -31,17 +31,12 @@
             get formatTag() { return window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">'); },
             get theme() { return window.OPUcConfig.get('opuc_theme', 'classic'); },
             get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); },
-            // NEW: Gallery Thumbnail Size
             get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); }
         },
 
-        state: { isLoggedIn: true },
-
-        dom: {
-            get form() { return document.getElementById('article-form-main'); },
-            get textArea() { return document.getElementById('post-body'); },
-            get toolsRow() { return document.querySelector('.post.content .tools'); },
-            get formatSelect() { return document.querySelector('select[name="bodyType"]'); }
+        state: { 
+            isLoggedIn: true,
+            activeTextArea: null // Tracks which text box the user is currently using
         },
 
         api: {

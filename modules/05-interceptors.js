@@ -15,12 +15,6 @@
                     if (match) ext = match[1].toLowerCase();
                     const file = new File([res.response], `leeched_${Date.now()}.${ext}`, { type: res.response.type });
                     window.OPUcCore.handleIncomingFiles([file]);
-                } else {
-                    const t = document.createElement('div');
-                    t.innerText = "OPUc: Failed to leech image from URL.";
-                    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#F44336;color:#fff;padding:8px 16px;border-radius:20px;z-index:999999;font-weight:bold;';
-                    document.body.appendChild(t);
-                    setTimeout(()=>t.remove(), 4000);
                 }
             }
         });
@@ -72,7 +66,6 @@
     const extractImageUrls = (textData, htmlData) => {
         const urls = new Set();
         const imgRegex = /(?:https?:\/\/)[^\s<>"']+\.(?:png|jpe?g|gif|webp|bmp)(?:\?[^\s<>"']*)?/gi;
-
         if (htmlData) {
             const doc = new DOMParser().parseFromString(htmlData, 'text/html');
             doc.querySelectorAll('img').forEach(img => { if (img.src && imgRegex.test(img.src)) urls.add(img.src); });
@@ -87,27 +80,20 @@
 
     window.OPUcInterceptors = {
         init: function() {
-            const dom = window.OPUcConfig.dom;
-            if (!dom.textArea) return;
+            const isOkounTextArea = (el) => el && el.tagName === 'TEXTAREA' && el.name === 'body';
 
-            const shortcutRaw = window.OPUcConfig.settings.uploadShortcut || 'Alt+V';
-            const shortcut = shortcutRaw.toLowerCase().replace(/\s/g, '');
+            // DELEGATED PASTE EVENT
+            document.body.addEventListener('paste', (e) => {
+                if (!isOkounTextArea(e.target)) return;
+                window.OPUcConfig.state.activeTextArea = e.target;
 
-            // --- NATIVE PASTE EVENT (Ctrl+V) ---
-            dom.textArea.addEventListener('paste', (e) => {
                 const clipboard = e.clipboardData || window.clipboardData;
                 if (!clipboard) return;
 
                 const filesToProcess = [];
-
-                // 1. W3C Standard (Better for Firefox multi-file)
                 if (clipboard.files && clipboard.files.length > 0) {
-                    Array.from(clipboard.files).forEach(file => {
-                        if (file.type.startsWith('image/')) filesToProcess.push(file);
-                    });
+                    Array.from(clipboard.files).forEach(file => { if (file.type.startsWith('image/')) filesToProcess.push(file); });
                 }
-                
-                // 2. Legacy/Chrome Fallback (If files array is empty)
                 if (filesToProcess.length === 0 && clipboard.items) {
                     for (let i = 0; i < clipboard.items.length; i++) {
                         const item = clipboard.items[i];
@@ -132,59 +118,73 @@
                 }
             });
 
-            // --- ASYNC CLIPBOARD API FOR CUSTOM HOTKEYS (e.g., Alt+V) ---
-            if (shortcut !== 'ctrl+v' && shortcut !== '' && shortcut !== 'none') {
+            // DELEGATED ALT+V
+            document.body.addEventListener('keydown', async (e) => {
+                if (!isOkounTextArea(e.target)) return;
+                
+                const shortcutRaw = window.OPUcConfig.settings.uploadShortcut || 'Alt+V';
+                const shortcut = shortcutRaw.toLowerCase().replace(/\s/g, '');
+                if (shortcut === 'ctrl+v' || shortcut === '' || shortcut === 'none') return;
+
                 const keys = shortcut.split('+');
                 const reqCtrl = keys.includes('ctrl');
                 const reqAlt = keys.includes('alt');
                 const reqShift = keys.includes('shift');
                 const reqKey = keys[keys.length - 1];
 
-                dom.textArea.addEventListener('keydown', async (e) => {
-                    if (e.ctrlKey === reqCtrl && e.altKey === reqAlt && e.shiftKey === reqShift && e.key.toLowerCase() === reqKey) {
-                        e.preventDefault();
-                        try {
-                            const clipboardItems = await navigator.clipboard.read();
-                            const files = [];
-                            
-                            for (const item of clipboardItems) {
-                                if (item.types.length === 0) return;
-                                const imageTypes = item.types.filter(type => type.startsWith('image/'));
-                                if (imageTypes.length > 0) {
-                                    for (const type of imageTypes) {
-                                        const blob = await item.getType(type);
-                                        files.push(new File([blob], `clipboard_${Date.now()}.${type.split('/')[1]}`, { type }));
-                                    }
-                                } else {
-                                    let textData = '', htmlData = '';
-                                    if (item.types.includes('text/plain')) textData = await (await item.getType('text/plain')).text();
-                                    if (item.types.includes('text/html')) htmlData = await (await item.getType('text/html')).text();
-                                    
-                                    const foundUrls = extractImageUrls(textData, htmlData);
-                                    if (foundUrls.length > 0) {
-                                        window.OPUcCore.leechUrls(foundUrls);
-                                        return; 
-                                    }
+                if (e.ctrlKey === reqCtrl && e.altKey === reqAlt && e.shiftKey === reqShift && e.key.toLowerCase() === reqKey) {
+                    e.preventDefault();
+                    window.OPUcConfig.state.activeTextArea = e.target;
+                    
+                    try {
+                        const clipboardItems = await navigator.clipboard.read();
+                        const files = [];
+                        for (const item of clipboardItems) {
+                            if (item.types.length === 0) return;
+                            const imageTypes = item.types.filter(type => type.startsWith('image/'));
+                            if (imageTypes.length > 0) {
+                                for (const type of imageTypes) {
+                                    const blob = await item.getType(type);
+                                    files.push(new File([blob], `clipboard_${Date.now()}.${type.split('/')[1]}`, { type }));
                                 }
+                            } else {
+                                let textData = '', htmlData = '';
+                                if (item.types.includes('text/plain')) textData = await (await item.getType('text/plain')).text();
+                                if (item.types.includes('text/html')) htmlData = await (await item.getType('text/html')).text();
+                                const foundUrls = extractImageUrls(textData, htmlData);
+                                if (foundUrls.length > 0) { window.OPUcCore.leechUrls(foundUrls); return; }
                             }
-                            if (files.length > 0) window.OPUcCore.handleIncomingFiles(files);
-                        } catch (err) {}
-                    }
-                });
-            }
+                        }
+                        if (files.length > 0) window.OPUcCore.handleIncomingFiles(files);
+                    } catch (err) {}
+                }
+            });
 
-            // --- DRAG & DROP INTERCEPTOR ---
-            if (window.OPUcConfig.settings.interceptDrop) {
-                dom.textArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dom.textArea.classList.add('opuc-drag-active'); });
-                dom.textArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dom.textArea.classList.remove('opuc-drag-active'); });
-                dom.textArea.addEventListener('drop', (e) => {
-                    e.preventDefault(); e.stopPropagation(); dom.textArea.classList.remove('opuc-drag-active');
+            // DELEGATED DRAG & DROP
+            document.body.addEventListener('dragover', (e) => {
+                if (window.OPUcConfig.settings.interceptDrop && isOkounTextArea(e.target)) {
+                    e.preventDefault(); e.stopPropagation();
+                    e.target.classList.add('opuc-drag-active');
+                }
+            });
+            document.body.addEventListener('dragleave', (e) => {
+                if (isOkounTextArea(e.target)) {
+                    e.preventDefault(); e.stopPropagation();
+                    e.target.classList.remove('opuc-drag-active');
+                }
+            });
+            document.body.addEventListener('drop', (e) => {
+                if (window.OPUcConfig.settings.interceptDrop && isOkounTextArea(e.target)) {
+                    e.preventDefault(); e.stopPropagation();
+                    e.target.classList.remove('opuc-drag-active');
+                    window.OPUcConfig.state.activeTextArea = e.target;
+
                     if (e.dataTransfer && e.dataTransfer.files) {
                         const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
                         if (files.length > 0) window.OPUcCore.handleIncomingFiles(files);
                     }
-                });
-            }
+                }
+            });
         }
     };
 })();
