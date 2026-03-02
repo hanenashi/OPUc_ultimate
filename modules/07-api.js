@@ -17,7 +17,7 @@
             });
         },
 
-        upload: async function(file, metadata = {}, isLastItem = true) { // FIXED: Přidáno isLastItem
+        upload: async function(file, metadata = {}, isLastItem = true) {
             const formData = new FormData();
             formData.append('obrazek[0]', file);
             formData.append('sizep', '0');      
@@ -60,20 +60,32 @@
             return null;
         },
 
+        // REBUILT: Processes distinct Format and Style settings
         buildTag: function(imageUrl, metadata = {}, currentBodyType, isLastItem) {
-            let formatString = metadata.formatOverride || window.OPUcConfig.settings.formatTag;
-            
-            if (formatString === 'auto') {
-                if (currentBodyType === 'html') formatString = '<img src="%url%">';
-                else if (currentBodyType === 'radeox') formatString = '[img:%url%]';
-                else if (currentBodyType === 'markdown') formatString = '![](%url%)';
-                else if (currentBodyType === 'plain') formatString = '%url%';
-                else formatString = '<img src="%url%">';
+            let format = window.OPUcConfig.settings.format;
+            if (format === 'auto') format = currentBodyType;
+
+            let style = metadata.styleOverride || window.OPUcConfig.settings.style;
+            let formatString = '%url%'; // Fallback
+
+            if (format === 'html') {
+                if (style === 'image') formatString = '<img src="%url%">';
+                else if (style === 'link') formatString = '<a href="%url%">%url%</a>';
+                else if (style === 'thumb') formatString = '<a href="%url%"><img src="%thumb%"></a>';
+            } else if (format === 'markdown') {
+                if (style === 'image') formatString = '![](%url%)';
+                else if (style === 'link') formatString = '[%url%](%url%)';
+                else if (style === 'thumb') formatString = '[![thumb](%thumb%)](%url%)';
+            } else if (format === 'radeox') {
+                if (style === 'image') formatString = '[img:%url%]';
+                else if (style === 'link') formatString = '[url=%url%]'; 
+                else if (style === 'thumb') formatString = '[url=%url%][img:%thumb%][/url]';
             }
 
             let thumbUrl = imageUrl.replace('/p/', '/t/');
             let formattedTag = formatString.replace(/%url%/g, imageUrl).replace(/%thumb%/g, thumbUrl);
 
+            // Stitch Caption
             if (metadata.caption) {
                 const pos = window.OPUcConfig.settings.captionPosition; 
                 const spc = window.OPUcConfig.settings.captionSpacing; 
@@ -86,6 +98,7 @@
                 else formattedTag = formattedTag + sep + metadata.caption;
             }
             
+            // Append spacing between multiple uploads
             if (!isLastItem) {
                 const betSpc = window.OPUcConfig.settings.betweenSpacing;
                 let finalSep = (currentBodyType === 'html') ? '<br><br>\n' : '\n\n';

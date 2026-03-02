@@ -93,10 +93,10 @@
             removeBtn.onclick = (e) => { e.preventDefault(); this.removeFromQueue(index); };
             topHalf.appendChild(removeBtn);
 
-            const hasCaption = !!file.opucCaption || !!file.opucFormatOverride;
+            const hasCaption = !!file.opucCaption || !!file.opucStyleOverride;
             const editBtn = document.createElement('button');
             editBtn.innerHTML = hasCaption ? '💬' : '✏️';
-            editBtn.title = hasCaption ? (file.opucCaption || 'Custom Format Active') : 'Add Caption / Format Override';
+            editBtn.title = hasCaption ? (file.opucCaption || 'Custom Style Active') : 'Add Caption / Style Override';
             editBtn.style.cssText = `position: absolute; top: 4px; right: 4px; background: ${hasCaption ? 'rgba(76, 175, 80, 0.95)' : 'rgba(255, 152, 0, 0.9)'}; color: ${hasCaption ? '#fff' : '#000'}; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
             editBtn.onclick = (e) => { e.preventDefault(); this.openCaptionModal(index); };
             topHalf.appendChild(editBtn);
@@ -129,21 +129,14 @@
             const file = this.queue[index];
             if (!file) return;
 
-            let currentBodyType = 'html';
-            if (window.OPUcConfig.state.activeTextArea) {
-                const form = window.OPUcConfig.state.activeTextArea.closest('.post.content') || document.getElementById('article-form-main');
-                if (form) {
-                    const sel = form.querySelector('select[name="bodyType"]');
-                    if (sel) currentBodyType = sel.value;
-                }
-            }
-
             let modal = document.getElementById('opuc-caption-modal');
             if (modal) modal.remove(); 
 
             modal = document.createElement('div');
             modal.id = 'opuc-caption-modal';
-            modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);`;
+            // Added tabindex so it can receive keydown events globally
+            modal.tabIndex = -1;
+            modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable'; 
@@ -181,31 +174,29 @@
             const capWrapper = document.createElement('div');
             capWrapper.appendChild(capLabel); capWrapper.appendChild(capInput); body.appendChild(capWrapper);
 
-            const fmtLabel = document.createElement('label');
-            fmtLabel.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted); display: block; margin-bottom: 4px;';
-            fmtLabel.innerText = `Format Override (${currentBodyType.toUpperCase()} mode):`;
-            const fmtSelect = document.createElement('select');
-            fmtSelect.style.cssText = 'width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: inherit; outline: none; box-sizing: border-box;';
+            // NEW: Format-Agnostic Style Override
+            const styLabel = document.createElement('label');
+            styLabel.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted); display: block; margin-bottom: 4px;';
+            styLabel.innerText = `Style Override:`;
+            const stySelect = document.createElement('select');
+            stySelect.style.cssText = 'width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: inherit; outline: none; box-sizing: border-box;';
             
-            let options = [{ val: '', text: '-- Use Global Default --' }];
-            if (currentBodyType === 'html') {
-                options.push({ val: '%url%', text: 'Pure URL' }, { val: '<img src="%url%">', text: 'Image (<img>)' }, { val: '<a href="%url%">%url%</a>', text: 'Link (<a>)' }, { val: '<a href="%url%"><img src="%thumb%"></a>', text: 'Linked Thumbnail' });
-            } else if (currentBodyType === 'markdown') {
-                options.push({ val: '%url%', text: 'Pure URL' }, { val: '![](%url%)', text: 'Image (![])' }, { val: '[![thumb](%thumb%)](%url%)', text: 'Linked Thumbnail' });
-            } else if (currentBodyType === 'radeox') {
-                options.push({ val: '%url%', text: 'Pure URL' }, { val: '[img:%url%]', text: 'Image ([img])' }, { val: '[url=%url%][img:%thumb%][/url]', text: 'Linked Thumbnail' });
-            } else {
-                options.push({ val: '%url%', text: 'Pure URL' });
-            }
+            const options = [
+                { val: '', text: '-- Use Global Default --' },
+                { val: 'url', text: 'Pure URL' },
+                { val: 'image', text: 'Image' },
+                { val: 'link', text: 'Link' },
+                { val: 'thumb', text: 'Linked Thumbnail' }
+            ];
 
             options.forEach(opt => {
                 const el = document.createElement('option');
                 el.value = opt.val; el.text = opt.text;
-                if (file.opucFormatOverride === opt.val) el.selected = true;
-                fmtSelect.appendChild(el);
+                if (file.opucStyleOverride === opt.val) el.selected = true;
+                stySelect.appendChild(el);
             });
-            const fmtWrapper = document.createElement('div');
-            fmtWrapper.appendChild(fmtLabel); fmtWrapper.appendChild(fmtSelect); body.appendChild(fmtWrapper);
+            const styWrapper = document.createElement('div');
+            styWrapper.appendChild(styLabel); styWrapper.appendChild(stySelect); body.appendChild(styWrapper);
 
             const footer = document.createElement('div');
             footer.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px;';
@@ -219,13 +210,30 @@
             saveBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
             saveBtn.onclick = () => {
                 file.opucCaption = capInput.value.trim();
-                file.opucFormatOverride = fmtSelect.value;
+                file.opucStyleOverride = stySelect.value;
                 modal.remove(); this.renderAllStagedItems(); 
             };
+
+            // NEW: Keyboard bindings
+            modal.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault(); cancelBtn.click();
+                } else if (e.key === 'Enter') {
+                    // Prevent saving if they are just typing a multi-line caption, unless they hit Ctrl+Enter
+                    if (e.target.tagName !== 'TEXTAREA' || e.ctrlKey) {
+                        e.preventDefault(); saveBtn.click();
+                    }
+                }
+            });
 
             footer.appendChild(cancelBtn); footer.appendChild(saveBtn);
             container.appendChild(header); container.appendChild(body); container.appendChild(footer);
             modal.appendChild(container); document.body.appendChild(modal);
+            
+            // Focus the modal so keydown events work immediately
+            modal.focus();
+            // Or auto-focus the caption input for quick typing
+            setTimeout(() => capInput.focus(), 10);
         },
 
         createYUIButton: function(text, customClass, onClick) {
@@ -237,7 +245,7 @@
             innerSpan.className = 'first-child';
             
             const btn = document.createElement('button');
-            if (customClass) btn.classList.add(customClass); // FIXED: Používá class místo id
+            if (customClass) btn.classList.add(customClass); 
             btn.type = 'button';
             btn.innerHTML = text;
             btn.style.cssText = 'user-select: none; cursor: pointer; font-weight: bold; transition: background-image 0.2s linear;';
@@ -297,7 +305,7 @@
             const validItems = this.queue.filter(f => f !== null);
             validItems.forEach((file, index) => {
                 const isLast = (index === validItems.length - 1);
-                const metadata = { caption: file.opucCaption || '', formatOverride: file.opucFormatOverride || '' };
+                const metadata = { caption: file.opucCaption || '', styleOverride: file.opucStyleOverride || '' };
                 const dummyUrl = `https://opu.peklo.biz/p/00/00/00/${file.name || 'preview.png'}`;
                 simulatedOutput += window.OPUcAPI.buildTag(dummyUrl, metadata, currentBodyType, isLast);
             });
@@ -318,10 +326,8 @@
                 const file = this.queue[i];
                 if (file !== null) {
                     try {
-                        const metadata = { caption: file.opucCaption || '', formatOverride: file.opucFormatOverride || '' };
+                        const metadata = { caption: file.opucCaption || '', styleOverride: file.opucStyleOverride || '' };
                         const isLastItem = (completed === itemsToUpload - 1);
-                        
-                        // FIXED: Očekává plnohodnotné propadnutí isLastItem až dolů do injekce
                         await window.OPUcAPI.upload(file, metadata, isLastItem); 
                         
                         document.querySelectorAll(`.opuc-stage-tile[data-index="${i}"]`).forEach(t => t.style.opacity = '0.3');

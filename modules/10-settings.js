@@ -73,14 +73,22 @@
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
                 
                 body.appendChild(createHeader('📝 Captions & Formatting'));
-                body.appendChild(createSelect('opuc_default_format_tag', 'Default Image Format', [
-                    { value: 'auto', text: 'Auto-detect from Form Dropdown' },
-                    { value: '<img src="%url%">', text: 'HTML (<img>)' },
-                    { value: '<a href="%url%">%url%</a>', text: 'HTML (Link)' },
-                    { value: '[img:%url%]', text: 'Radeox ([img])' },
-                    { value: '![](%url%)', text: 'Markdown (![])' },
-                    { value: '%url%', text: 'Plain Text URL' }
+                
+                // NEW: Matrix Selectors
+                body.appendChild(createSelect('opuc_format', 'Format (Syntax)', [
+                    { value: 'auto', text: 'Auto-detect from Form' },
+                    { value: 'plain', text: 'Text (Plain)' },
+                    { value: 'html', text: 'HTML' },
+                    { value: 'radeox', text: 'Radeox' },
+                    { value: 'markdown', text: 'Markdown' }
                 ], 'auto'));
+
+                body.appendChild(createSelect('opuc_style', 'Style (Tag Type)', [
+                    { value: 'url', text: 'Pure URL' },
+                    { value: 'image', text: 'Image' },
+                    { value: 'link', text: 'Link' },
+                    { value: 'thumb', text: 'Linked Thumbnail' }
+                ], 'image'));
 
                 body.appendChild(createSelect('opuc_caption_position', 'Caption Position', [{ value: 'below', text: 'Below Image' }, { value: 'above', text: 'Above Image' }], 'below'));
                 body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing (Between text & img)', [{ value: 'br', text: 'Single Break (<br>)' }, { value: 'br2', text: 'Double Break (<br><br>)' }, { value: 'nl', text: 'New Line (\\n)' }, { value: 'space', text: 'Single Space' }], 'br2'));
@@ -112,7 +120,8 @@
             window.OPUcConfig.set('opuc_intercept_drop', document.getElementById('opuc_intercept_drop').checked);
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
-            window.OPUcConfig.set('opuc_default_format_tag', document.getElementById('opuc_default_format_tag').value);
+            window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
+            window.OPUcConfig.set('opuc_style', document.getElementById('opuc_style').value);
             window.OPUcConfig.set('opuc_caption_position', document.getElementById('opuc_caption_position').value);
             window.OPUcConfig.set('opuc_caption_spacing', document.getElementById('opuc_caption_spacing').value);
             window.OPUcConfig.set('opuc_between_spacing', document.getElementById('opuc_between_spacing').value);
