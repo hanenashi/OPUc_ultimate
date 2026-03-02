@@ -50,15 +50,17 @@
             stagingArea.appendChild(stagingControls);
             textArea.parentNode.insertBefore(stagingArea, textArea);
 
+            // FIXED: Removed "yui-submit-button" so Okoun doesn't hijack this span
             const outerSpan = document.createElement('span');
-            outerSpan.className = 'yui-button yui-submit-button default';
+            outerSpan.className = 'yui-button default'; 
             outerSpan.style.position = 'relative'; 
 
             const innerSpan = document.createElement('span');
             innerSpan.className = 'first-child';
 
+            // FIXED: Removed "submit" class so Okoun's form scripts ignore it
             const opucBtn = document.createElement('button');
-            opucBtn.className = 'submit opuc-main-btn'; 
+            opucBtn.className = 'opuc-main-btn'; 
             opucBtn.type = 'button';
             opucBtn.innerHTML = 'OPUc';
             opucBtn.title = 'Left Click: Add File | Right Click: Menu';
@@ -68,7 +70,6 @@
             outerSpan.appendChild(innerSpan);
             toolsRow.appendChild(outerSpan);
 
-            // FIXED: Mobile file picker bug. Replaced display:none with absolute/invisible CSS.
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
@@ -139,7 +140,6 @@
                 return item;
             };
 
-            // NEW: Menu-triggered Paste Parser
             menu.appendChild(createItem('📋', 'Paste (Leech)', () => { 
                 if (window.OPUcCore && window.OPUcCore.processClipboardContent) {
                     window.OPUcCore.processClipboardContent(textArea);
