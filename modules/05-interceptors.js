@@ -78,11 +78,52 @@
         return Array.from(urls);
     };
 
+    // NEW: Extracted so Context Menu and Keyboard Shortcuts can share it
+    window.OPUcCore.processClipboardContent = async function(targetTextArea) {
+        if (targetTextArea) window.OPUcConfig.state.activeTextArea = targetTextArea;
+        
+        try {
+            // Modern API attempt (Chrome, Safari, newer Firefox)
+            const clipboardItems = await navigator.clipboard.read();
+            const files = [];
+            for (const item of clipboardItems) {
+                if (item.types.length === 0) continue;
+                const imageTypes = item.types.filter(type => type.startsWith('image/'));
+                if (imageTypes.length > 0) {
+                    for (const type of imageTypes) {
+                        const blob = await item.getType(type);
+                        files.push(new File([blob], `clipboard_${Date.now()}.${type.split('/')[1]}`, { type }));
+                    }
+                } else {
+                    let textData = '', htmlData = '';
+                    if (item.types.includes('text/plain')) textData = await (await item.getType('text/plain')).text();
+                    if (item.types.includes('text/html')) htmlData = await (await item.getType('text/html')).text();
+                    const foundUrls = extractImageUrls(textData, htmlData);
+                    if (foundUrls.length > 0) { window.OPUcCore.leechUrls(foundUrls); return; }
+                }
+            }
+            if (files.length > 0) window.OPUcCore.handleIncomingFiles(files);
+            
+        } catch (err) {
+            // Strict API fallback (Firefox blocks read() but sometimes allows readText())
+            try {
+                const text = await navigator.clipboard.readText();
+                const foundUrls = extractImageUrls(text, null);
+                if (foundUrls.length > 0) { 
+                    window.OPUcCore.leechUrls(foundUrls); 
+                } else {
+                    if (window.OPUcLog) window.OPUcLog.warn("Clipboard text contained no valid image URLs.");
+                }
+            } catch (fallbackErr) {
+                alert("OPUc: Browser security blocked clipboard access. Please use standard Ctrl+V in the text box.");
+            }
+        }
+    };
+
     window.OPUcInterceptors = {
         init: function() {
             const isOkounTextArea = (el) => el && el.tagName === 'TEXTAREA' && el.name === 'body';
 
-            // DELEGATED PASTE EVENT
             document.body.addEventListener('paste', (e) => {
                 if (!isOkounTextArea(e.target)) return;
                 window.OPUcConfig.state.activeTextArea = e.target;
@@ -118,7 +159,6 @@
                 }
             });
 
-            // DELEGATED ALT+V
             document.body.addEventListener('keydown', async (e) => {
                 if (!isOkounTextArea(e.target)) return;
                 
@@ -134,33 +174,10 @@
 
                 if (e.ctrlKey === reqCtrl && e.altKey === reqAlt && e.shiftKey === reqShift && e.key.toLowerCase() === reqKey) {
                     e.preventDefault();
-                    window.OPUcConfig.state.activeTextArea = e.target;
-                    
-                    try {
-                        const clipboardItems = await navigator.clipboard.read();
-                        const files = [];
-                        for (const item of clipboardItems) {
-                            if (item.types.length === 0) return;
-                            const imageTypes = item.types.filter(type => type.startsWith('image/'));
-                            if (imageTypes.length > 0) {
-                                for (const type of imageTypes) {
-                                    const blob = await item.getType(type);
-                                    files.push(new File([blob], `clipboard_${Date.now()}.${type.split('/')[1]}`, { type }));
-                                }
-                            } else {
-                                let textData = '', htmlData = '';
-                                if (item.types.includes('text/plain')) textData = await (await item.getType('text/plain')).text();
-                                if (item.types.includes('text/html')) htmlData = await (await item.getType('text/html')).text();
-                                const foundUrls = extractImageUrls(textData, htmlData);
-                                if (foundUrls.length > 0) { window.OPUcCore.leechUrls(foundUrls); return; }
-                            }
-                        }
-                        if (files.length > 0) window.OPUcCore.handleIncomingFiles(files);
-                    } catch (err) {}
+                    window.OPUcCore.processClipboardContent(e.target); // Uses the shared engine
                 }
             });
 
-            // DELEGATED DRAG & DROP
             document.body.addEventListener('dragover', (e) => {
                 if (window.OPUcConfig.settings.interceptDrop && isOkounTextArea(e.target)) {
                     e.preventDefault(); e.stopPropagation();

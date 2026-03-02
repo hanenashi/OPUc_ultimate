@@ -7,7 +7,6 @@
         cancelCallback: null,
 
         inject: function() {
-            // THE WATCHER: Find all forms currently on the page and watch for new ones
             const injectAll = () => {
                 const textAreas = document.querySelectorAll('textarea[name="body"]');
                 textAreas.forEach(ta => {
@@ -22,7 +21,6 @@
             const observer = new MutationObserver(() => injectAll());
             observer.observe(document.body, { childList: true, subtree: true });
 
-            // Global click listener to close ALL context menus
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.opuc-main-btn') && !e.target.closest('.opuc-context-menu')) {
                     document.querySelectorAll('.opuc-context-menu').forEach(m => m.style.display = 'none');
@@ -37,7 +35,6 @@
 
             const isLoggedIn = window.OPUcConfig.state.isLoggedIn;
 
-            // Build Scoped Staging Area
             const stagingArea = document.createElement('div');
             stagingArea.className = 'opuc-staging-area'; 
             
@@ -53,7 +50,6 @@
             stagingArea.appendChild(stagingControls);
             textArea.parentNode.insertBefore(stagingArea, textArea);
 
-            // Build Scoped Native Button
             const outerSpan = document.createElement('span');
             outerSpan.className = 'yui-button yui-submit-button default';
             outerSpan.style.position = 'relative'; 
@@ -72,24 +68,22 @@
             outerSpan.appendChild(innerSpan);
             toolsRow.appendChild(outerSpan);
 
-            // Scoped File Input
+            // FIXED: Mobile file picker bug. Replaced display:none with absolute/invisible CSS.
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
-            fileInput.style.display = 'none';
+            fileInput.style.cssText = 'position: absolute; width: 1px; height: 1px; left: -9999px; opacity: 0;';
             fileInput.multiple = isLoggedIn; 
             document.body.appendChild(fileInput);
 
-            const menu = this.buildContextMenu(isLoggedIn);
+            const menu = this.buildContextMenu(isLoggedIn, textArea);
             outerSpan.appendChild(menu);
 
-            // Track active text area on focus
             textArea.addEventListener('focus', () => { window.OPUcConfig.state.activeTextArea = textArea; });
 
-            // Button Events
             opucBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                window.OPUcConfig.state.activeTextArea = textArea; // Force focus
+                window.OPUcConfig.state.activeTextArea = textArea; 
                 if (this.isWorking && this.cancelCallback) {
                     this.cancelCallback();
                     this.resetButtonState();
@@ -112,14 +106,13 @@
                 fileInput.value = ''; 
             });
 
-            // Initial state sync
             if (window.OPUcConfig.settings.stagingEnabled && window.OPUcEditor && window.OPUcEditor.queue.length > 0) {
                 stagingArea.classList.add('active');
                 if(window.OPUcEditor.renderAllStagedItems) window.OPUcEditor.renderAllStagedItems();
             }
         },
 
-        buildContextMenu: function(isLoggedIn) {
+        buildContextMenu: function(isLoggedIn, textArea) {
             const menu = document.createElement('div');
             menu.className = 'opuc-context-menu opuc-scalable opuc-origin-tr';
             menu.style.cssText = `
@@ -146,6 +139,12 @@
                 return item;
             };
 
+            // NEW: Menu-triggered Paste Parser
+            menu.appendChild(createItem('📋', 'Paste (Leech)', () => { 
+                if (window.OPUcCore && window.OPUcCore.processClipboardContent) {
+                    window.OPUcCore.processClipboardContent(textArea);
+                }
+            }));
             menu.appendChild(createItem('🖼️', 'Gallery', () => { if (window.OPUcGallery) window.OPUcGallery.open(); }, !isLoggedIn));
             menu.appendChild(createItem('⏸️', 'Toggle Staging', () => {
                 const current = window.OPUcConfig.settings.stagingEnabled;
@@ -156,7 +155,6 @@
             return menu;
         },
 
-        // API Updates for Multi-Instance
         setWorkingState: function(cancelCb) {
             this.isWorking = true; this.cancelCallback = cancelCb;
             document.querySelectorAll('.opuc-main-btn').forEach(btn => {
