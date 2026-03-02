@@ -134,7 +134,6 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-caption-modal';
-            // Added tabindex so it can receive keydown events globally
             modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
@@ -174,7 +173,6 @@
             const capWrapper = document.createElement('div');
             capWrapper.appendChild(capLabel); capWrapper.appendChild(capInput); body.appendChild(capWrapper);
 
-            // NEW: Format-Agnostic Style Override
             const styLabel = document.createElement('label');
             styLabel.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted); display: block; margin-bottom: 4px;';
             styLabel.innerText = `Style Override:`;
@@ -214,12 +212,10 @@
                 modal.remove(); this.renderAllStagedItems(); 
             };
 
-            // NEW: Keyboard bindings
             modal.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     e.preventDefault(); cancelBtn.click();
                 } else if (e.key === 'Enter') {
-                    // Prevent saving if they are just typing a multi-line caption, unless they hit Ctrl+Enter
                     if (e.target.tagName !== 'TEXTAREA' || e.ctrlKey) {
                         e.preventDefault(); saveBtn.click();
                     }
@@ -230,9 +226,7 @@
             container.appendChild(header); container.appendChild(body); container.appendChild(footer);
             modal.appendChild(container); document.body.appendChild(modal);
             
-            // Focus the modal so keydown events work immediately
             modal.focus();
-            // Or auto-focus the caption input for quick typing
             setTimeout(() => capInput.focus(), 10);
         },
 
@@ -293,6 +287,7 @@
             });
         },
 
+        // REBUILT: Custom Theme-Aware Preview Modal
         showPreviewModal: function(controlsElement) {
             let currentBodyType = 'html';
             const parentForm = controlsElement.closest('.post.content') || document.getElementById('article-form-main');
@@ -310,7 +305,57 @@
                 simulatedOutput += window.OPUcAPI.buildTag(dummyUrl, metadata, currentBodyType, isLast);
             });
 
-            alert("PREVIEW (" + currentBodyType.toUpperCase() + " mode):\n\n" + simulatedOutput);
+            let modal = document.getElementById('opuc-preview-modal');
+            if (modal) modal.remove();
+
+            modal = document.createElement('div');
+            modal.id = 'opuc-preview-modal';
+            modal.tabIndex = -1;
+            modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
+
+            const container = document.createElement('div');
+            container.className = 'opuc-scalable';
+            container.style.cssText = `width: 90%; max-width: 600px; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
+
+            const header = document.createElement('div');
+            header.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; font-weight: bold;';
+            header.innerHTML = `<span>👁️ Preview (${currentBodyType.toUpperCase()} mode)</span>`;
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '✖';
+            closeBtn.style.cssText = 'background: none; border: none; color: var(--opuc-text-main); font-size: 16px; cursor: pointer;';
+            closeBtn.onclick = () => modal.remove();
+            header.appendChild(closeBtn);
+
+            const body = document.createElement('div');
+            body.style.cssText = 'padding: 15px; display: flex; flex-direction: column; gap: 15px;';
+
+            const textArea = document.createElement('textarea');
+            textArea.value = simulatedOutput;
+            textArea.readOnly = true;
+            textArea.style.cssText = 'width: 100%; height: 250px; padding: 10px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: monospace; font-size: 13px; resize: vertical; box-sizing: border-box; outline: none; white-space: pre-wrap;';
+            body.appendChild(textArea);
+
+            const footer = document.createElement('div');
+            footer.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px;';
+            
+            const okBtn = document.createElement('button');
+            okBtn.innerText = 'Close';
+            okBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
+            okBtn.onclick = () => modal.remove();
+
+            // Keyboard bindings
+            modal.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' || e.key === 'Enter') {
+                    e.preventDefault(); modal.remove();
+                }
+            });
+
+            footer.appendChild(okBtn);
+            container.appendChild(header); container.appendChild(body); container.appendChild(footer);
+            modal.appendChild(container); document.body.appendChild(modal);
+
+            modal.focus();
         },
 
         flushQueue: async function(itemsToUpload) {
