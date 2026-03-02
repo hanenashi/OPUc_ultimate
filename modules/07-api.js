@@ -60,13 +60,12 @@
             return null;
         },
 
-        // REBUILT: Processes distinct Format and Style settings
         buildTag: function(imageUrl, metadata = {}, currentBodyType, isLastItem) {
             let format = window.OPUcConfig.settings.format;
             if (format === 'auto') format = currentBodyType;
 
             let style = metadata.styleOverride || window.OPUcConfig.settings.style;
-            let formatString = '%url%'; // Fallback
+            let formatString = '%url%'; 
 
             if (format === 'html') {
                 if (style === 'image') formatString = '<img src="%url%">';
@@ -85,14 +84,26 @@
             let thumbUrl = imageUrl.replace('/p/', '/t/');
             let formattedTag = formatString.replace(/%url%/g, imageUrl).replace(/%thumb%/g, thumbUrl);
 
+            const isHtmlFormat = (format === 'html');
+            
+            // NEW: Semantic Spacing Engine
+            const getSpacing = (semanticType) => {
+                // Legacy fallbacks for older saves
+                if (semanticType === 'br' || semanticType === 'nl') semanticType = 'single';
+                if (semanticType === 'br2' || semanticType === 'nl2' || semanticType === 'auto') semanticType = 'double';
+                
+                if (semanticType === 'single') return isHtmlFormat ? '<br>\n' : '\n';
+                if (semanticType === 'double') return isHtmlFormat ? '<br><br>\n' : '\n\n';
+                if (semanticType === 'space') return ' ';
+                if (semanticType === 'none') return isHtmlFormat ? '\n' : ''; // \n in HTML source won't break layout
+                return isHtmlFormat ? '<br><br>\n' : '\n\n';
+            };
+
             // Stitch Caption
             if (metadata.caption) {
                 const pos = window.OPUcConfig.settings.captionPosition; 
                 const spc = window.OPUcConfig.settings.captionSpacing; 
-                let sep = '\n'; 
-                if (spc === 'br') sep = (currentBodyType === 'html') ? '<br>' : '\n';
-                else if (spc === 'br2') sep = (currentBodyType === 'html') ? '<br><br>' : '\n\n';
-                else if (spc === 'space') sep = ' ';
+                let sep = getSpacing(spc);
 
                 if (pos === 'above') formattedTag = metadata.caption + sep + formattedTag;
                 else formattedTag = formattedTag + sep + metadata.caption;
@@ -101,12 +112,7 @@
             // Append spacing between multiple uploads
             if (!isLastItem) {
                 const betSpc = window.OPUcConfig.settings.betweenSpacing;
-                let finalSep = (currentBodyType === 'html') ? '<br><br>\n' : '\n\n';
-                if (betSpc === 'br') finalSep = '<br>\n';
-                else if (betSpc === 'br2') finalSep = '<br><br>\n';
-                else if (betSpc === 'nl') finalSep = '\n';
-                else if (betSpc === 'nl2') finalSep = '\n\n';
-                formattedTag += finalSep;
+                formattedTag += getSpacing(betSpc);
             } else {
                 formattedTag += '\n'; 
             }

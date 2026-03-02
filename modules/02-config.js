@@ -29,12 +29,12 @@
             get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); },
             get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); },
             
-            // NEW: Separated Format and Style
             get format() { return window.OPUcConfig.get('opuc_format', 'auto'); },
             get style() { return window.OPUcConfig.get('opuc_style', 'image'); },
             get captionPosition() { return window.OPUcConfig.get('opuc_caption_position', 'below'); },
-            get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'br2'); },
-            get betweenSpacing() { return window.OPUcConfig.get('opuc_between_spacing', 'auto'); }
+            // NEW: Semantic Spacing Defaults
+            get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'double'); },
+            get betweenSpacing() { return window.OPUcConfig.get('opuc_between_spacing', 'double'); }
         },
 
         state: { isLoggedIn: true, activeTextArea: null },

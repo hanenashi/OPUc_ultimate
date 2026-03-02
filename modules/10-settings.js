@@ -43,7 +43,12 @@
                 const createSelect = (id, label, options, defaultVal) => {
                     const row = document.createElement('div');
                     row.style.cssText = 'display: flex; flex-direction: column; gap: 5px; font-size: 14px;';
-                    const currentVal = window.OPUcConfig.get(id, defaultVal);
+                    
+                    // Legacy Fallback Reader
+                    let currentVal = window.OPUcConfig.get(id, defaultVal);
+                    if (currentVal === 'br' || currentVal === 'nl') currentVal = 'single';
+                    if (currentVal === 'br2' || currentVal === 'nl2' || currentVal === 'auto') currentVal = 'double';
+
                     let selectHTML = `<select id="${id}" style="padding: 8px; background: var(--opuc-bg-secondary); color: var(--opuc-text-main); border: 1px solid var(--opuc-border); border-radius: 4px; outline: none; font-family: inherit;">`;
                     options.forEach(opt => { selectHTML += `<option value="${opt.value}" ${currentVal === opt.value ? 'selected' : ''}>${opt.text}</option>`; });
                     selectHTML += `</select>`;
@@ -73,8 +78,6 @@
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
                 
                 body.appendChild(createHeader('📝 Captions & Formatting'));
-                
-                // NEW: Matrix Selectors
                 body.appendChild(createSelect('opuc_format', 'Format (Syntax)', [
                     { value: 'auto', text: 'Auto-detect from Form' },
                     { value: 'plain', text: 'Text (Plain)' },
@@ -91,8 +94,21 @@
                 ], 'image'));
 
                 body.appendChild(createSelect('opuc_caption_position', 'Caption Position', [{ value: 'below', text: 'Below Image' }, { value: 'above', text: 'Above Image' }], 'below'));
-                body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing (Between text & img)', [{ value: 'br', text: 'Single Break (<br>)' }, { value: 'br2', text: 'Double Break (<br><br>)' }, { value: 'nl', text: 'New Line (\\n)' }, { value: 'space', text: 'Single Space' }], 'br2'));
-                body.appendChild(createSelect('opuc_between_spacing', 'Spacing BETWEEN multiple uploads', [{ value: 'auto', text: 'Auto-detect from format' }, { value: 'br', text: 'Single Break (<br>)' }, { value: 'br2', text: 'Double Break (<br><br>)' }, { value: 'nl', text: 'New Line (\\n)' }, { value: 'nl2', text: 'Double New Line (\\n\\n)' }], 'auto'));
+                
+                // FIXED: Semantic Spacing Dropdowns
+                body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing (Between text & img)', [
+                    { value: 'single', text: 'Single Break' },
+                    { value: 'double', text: 'Double Break (Paragraph)' },
+                    { value: 'space', text: 'Inline Space' },
+                    { value: 'none', text: 'None (Flush)' }
+                ], 'double'));
+
+                body.appendChild(createSelect('opuc_between_spacing', 'Spacing BETWEEN multiple uploads', [
+                    { value: 'single', text: 'Single Break' },
+                    { value: 'double', text: 'Double Break (Paragraph)' },
+                    { value: 'space', text: 'Inline Space' },
+                    { value: 'none', text: 'None (Flush)' }
+                ], 'double'));
 
                 const footer = document.createElement('div');
                 footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end;';
