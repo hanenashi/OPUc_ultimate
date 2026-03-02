@@ -12,10 +12,7 @@
                         window.OPUcConfig.state.isLoggedIn = isLoggedIn;
                         resolve(isLoggedIn);
                     },
-                    onerror: function() {
-                        window.OPUcConfig.state.isLoggedIn = false;
-                        resolve(false);
-                    }
+                    onerror: function() { window.OPUcConfig.state.isLoggedIn = false; resolve(false); }
                 });
             });
         },
@@ -33,10 +30,8 @@
                     onload: function(response) {
                         if (response.status === 200) {
                             const finalLink = window.OPUcAPI.extractLinkFromResponse(response.responseText);
-                            if (finalLink) {
-                                window.OPUcAPI.injectIntoOkoun(finalLink, metadata);
-                                resolve(finalLink);
-                            } else reject("Extraction failed");
+                            if (finalLink) resolve(finalLink);
+                            else reject("Extraction failed");
                         } else reject(`HTTP Error ${response.status}`);
                     },
                     onerror: function(err) { reject(err); }
@@ -55,24 +50,11 @@
             return null;
         },
 
-        injectIntoOkoun: function(imageUrl, metadata = {}) {
-            let textArea = window.OPUcConfig.state.activeTextArea;
-            if (!textArea) {
-                textArea = document.getElementById('post-body'); 
-                if(!textArea) return;
-            }
-
-            // 1. Zjistit aktuálně vybraný formát pro dané okno
-            const parentForm = textArea.closest('.post.content') || document.getElementById('article-form-main');
-            let currentBodyType = 'html';
-            if (parentForm) {
-                const select = parentForm.querySelector('select[name="bodyType"]');
-                if (select) currentBodyType = select.value;
-            }
-
-            // 2. Vyřešit finální Injekční tag
+        // NEW: Shared math engine for building the formatted string
+        buildTag: function(imageUrl, metadata = {}, currentBodyType, isLastItem) {
             let formatString = metadata.formatOverride || window.OPUcConfig.settings.formatTag;
             
+            // Auto-detect based on form
             if (formatString === 'auto') {
                 if (currentBodyType === 'html') formatString = '<img src="%url%">';
                 else if (currentBodyType === 'radeox') formatString = '[img:%url%]';
@@ -81,45 +63,64 @@
                 else formatString = '<img src="%url%">';
             }
 
-            let formattedTag = formatString.replace(/%url%/g, imageUrl);
+            // OPU natively uses /t/ instead of /p/ for thumbnails
+            let thumbUrl = imageUrl.replace('/p/', '/t/');
+            let formattedTag = formatString.replace(/%url%/g, imageUrl).replace(/%thumb%/g, thumbUrl);
 
-            // 3. Přidání popisku (Caption)
+            // Stitch Caption 
             if (metadata.caption) {
-                // CHYTRÝ MARKDOWN: Pokud formát je Markdown, vložíme popisek rovnou do závorek!
-                if (formatString === '![](%url%)' || formatString === '![image](%url%)') {
-                    formattedTag = `![${metadata.caption}](${imageUrl})`;
-                } else {
-                    // Pro všechny ostatní formáty lepíme nad/pod
-                    const pos = window.OPUcConfig.settings.captionPosition; 
-                    const spc = window.OPUcConfig.settings.captionSpacing; 
-                    
-                    let sep = '\n'; // Default fallback
-                    if (spc === 'br') sep = (currentBodyType === 'html') ? '<br>' : '\n';
-                    else if (spc === 'br2') sep = (currentBodyType === 'html') ? '<br><br>' : '\n\n';
-                    else if (spc === 'space') sep = ' ';
+                const pos = window.OPUcConfig.settings.captionPosition; 
+                const spc = window.OPUcConfig.settings.captionSpacing; 
+                let sep = '\n'; 
+                if (spc === 'br') sep = (currentBodyType === 'html') ? '<br>' : '\n';
+                else if (spc === 'br2') sep = (currentBodyType === 'html') ? '<br><br>' : '\n\n';
+                else if (spc === 'space') sep = ' ';
 
-                    if (pos === 'above') {
-                        formattedTag = metadata.caption + sep + formattedTag;
-                    } else {
-                        formattedTag = formattedTag + sep + metadata.caption;
-                    }
-                }
+                if (pos === 'above') formattedTag = metadata.caption + sep + formattedTag;
+                else formattedTag = formattedTag + sep + metadata.caption;
             }
             
-            // Finální oddělovač za celým blokem obrázku (aby se obrázky neslily)
-            formattedTag += (currentBodyType === 'html') ? '\n' : '\n\n';
+            // Append spacing between multiple uploads
+            if (!isLastItem) {
+                const betSpc = window.OPUcConfig.settings.betweenSpacing;
+                let finalSep = (currentBodyType === 'html') ? '<br><br>\n' : '\n\n';
+                if (betSpc === 'br') finalSep = '<br>\n';
+                else if (betSpc === 'br2') finalSep = '<br><br>\n';
+                else if (betSpc === 'nl') finalSep = '\n';
+                else if (betSpc === 'nl2') finalSep = '\n\n';
+                formattedTag += finalSep;
+            } else {
+                formattedTag += '\n'; // Just one newline for the very end
+            }
             
-            // 4. Samotná Injekce do okna
+            return formattedTag;
+        },
+
+        injectIntoOkoun: function(imageUrl, metadata = {}, isLastItem = true) {
+            let textArea = window.OPUcConfig.state.activeTextArea;
+            if (!textArea) {
+                textArea = document.getElementById('post-body'); 
+                if(!textArea) return;
+            }
+
+            const parentForm = textArea.closest('.post.content') || document.getElementById('article-form-main');
+            let currentBodyType = 'html';
+            if (parentForm) {
+                const select = parentForm.querySelector('select[name="bodyType"]');
+                if (select) currentBodyType = select.value;
+            }
+
+            // Calls the pure string builder
+            const formattedTag = this.buildTag(imageUrl, metadata, currentBodyType, isLastItem);
+            
             const startPos = textArea.selectionStart;
             const endPos = textArea.selectionEnd;
-            
             if (startPos !== undefined && startPos !== null) {
                 textArea.value = textArea.value.substring(0, startPos) + formattedTag + textArea.value.substring(endPos, textArea.value.length);
                 textArea.selectionStart = textArea.selectionEnd = startPos + formattedTag.length;
             } else {
                 textArea.value += formattedTag;
             }
-            
             textArea.dispatchEvent(new Event('input', { bubbles: true }));
         }
     };

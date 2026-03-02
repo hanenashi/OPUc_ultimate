@@ -11,10 +11,7 @@
     window.OPUcConfig = {
         get: (key, defaultValue) => {
             if (typeof GM_getValue !== 'undefined') return GM_getValue(key, defaultValue);
-            try {
-                const val = localStorage.getItem('opuc_' + key);
-                if (val !== null) return JSON.parse(val);
-            } catch(e) {}
+            try { const val = localStorage.getItem('opuc_' + key); if (val !== null) return JSON.parse(val); } catch(e) {}
             return defaultValue;
         },
         set: (key, value) => {
@@ -32,10 +29,10 @@
             get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); },
             get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); },
             
-            // Formatting & Captions (Updated for Auto-Detect)
             get formatTag() { return window.OPUcConfig.get('opuc_default_format_tag', 'auto'); },
             get captionPosition() { return window.OPUcConfig.get('opuc_caption_position', 'below'); },
-            get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'br2'); }
+            get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'br2'); },
+            get betweenSpacing() { return window.OPUcConfig.get('opuc_between_spacing', 'auto'); } // NEW
         },
 
         state: { isLoggedIn: true, activeTextArea: null },

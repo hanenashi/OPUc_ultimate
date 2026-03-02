@@ -29,8 +29,7 @@
                 const createHeader = (title) => {
                     const hdr = document.createElement('div');
                     hdr.style.cssText = 'margin-top: 10px; padding-bottom: 5px; border-bottom: 1px solid var(--opuc-border); font-weight: bold; color: var(--opuc-accent); font-size: 15px;';
-                    hdr.innerText = title;
-                    return hdr;
+                    hdr.innerText = title; return hdr;
                 };
 
                 const createToggle = (id, label, defaultVal) => {
@@ -74,8 +73,6 @@
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
                 
                 body.appendChild(createHeader('📝 Captions & Formatting'));
-                
-                // NEW: Dropdown selector pro globální formátování
                 body.appendChild(createSelect('opuc_default_format_tag', 'Default Image Format', [
                     { value: 'auto', text: 'Auto-detect from Form Dropdown' },
                     { value: '<img src="%url%">', text: 'HTML (<img>)' },
@@ -86,7 +83,8 @@
                 ], 'auto'));
 
                 body.appendChild(createSelect('opuc_caption_position', 'Caption Position', [{ value: 'below', text: 'Below Image' }, { value: 'above', text: 'Above Image' }], 'below'));
-                body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing', [{ value: 'br', text: 'Single Break (<br>)' }, { value: 'br2', text: 'Double Break (<br><br>)' }, { value: 'nl', text: 'New Line (\\n)' }, { value: 'space', text: 'Single Space' }], 'br2'));
+                body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing (Between text & img)', [{ value: 'br', text: 'Single Break (<br>)' }, { value: 'br2', text: 'Double Break (<br><br>)' }, { value: 'nl', text: 'New Line (\\n)' }, { value: 'space', text: 'Single Space' }], 'br2'));
+                body.appendChild(createSelect('opuc_between_spacing', 'Spacing BETWEEN multiple uploads', [{ value: 'auto', text: 'Auto-detect from format' }, { value: 'br', text: 'Single Break (<br>)' }, { value: 'br2', text: 'Double Break (<br><br>)' }, { value: 'nl', text: 'New Line (\\n)' }, { value: 'nl2', text: 'Double New Line (\\n\\n)' }], 'auto'));
 
                 const footer = document.createElement('div');
                 footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end;';
@@ -114,10 +112,10 @@
             window.OPUcConfig.set('opuc_intercept_drop', document.getElementById('opuc_intercept_drop').checked);
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
-            // Saved Format Variables
             window.OPUcConfig.set('opuc_default_format_tag', document.getElementById('opuc_default_format_tag').value);
             window.OPUcConfig.set('opuc_caption_position', document.getElementById('opuc_caption_position').value);
             window.OPUcConfig.set('opuc_caption_spacing', document.getElementById('opuc_caption_spacing').value);
+            window.OPUcConfig.set('opuc_between_spacing', document.getElementById('opuc_between_spacing').value);
 
             if (window.OPUcUI && typeof window.OPUcUI.toggleStagingAll === 'function') window.OPUcUI.toggleStagingAll(document.getElementById('opuc_staging_enabled').checked);
             if (window.OPUcTheme) window.OPUcTheme.refresh();
