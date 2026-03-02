@@ -17,7 +17,7 @@
                 `;
 
                 const container = document.createElement('div');
-                container.className = 'opuc-scalable'; // Applies the CSS transform scaling!
+                container.className = 'opuc-scalable'; 
                 container.style.cssText = `
                     width: 90%; max-width: 500px; background: var(--opuc-bg-secondary);
                     border-radius: 8px; border: 1px solid var(--opuc-border);
@@ -36,7 +36,7 @@
                 header.appendChild(closeBtn);
 
                 const body = document.createElement('div');
-                body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto;';
+                body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; max-height: 70vh;';
 
                 const createToggle = (id, label, defaultVal) => {
                     const row = document.createElement('label');
@@ -69,13 +69,13 @@
                     return row;
                 };
 
-                // Add Theme and Scale to the top
                 body.appendChild(createSelect('opuc_theme', 'UI Theme', [
                     { value: 'classic', text: 'Okoun Classic (Light)' },
                     { value: 'dark', text: 'Night Mode (Dark)' },
                     { value: 'contrast', text: 'High Contrast (Hacker)' },
                     { value: 'retro', text: 'Retro 8-Bit' }
                 ], 'classic'));
+                
                 body.appendChild(createSelect('opuc_ui_scale', 'Mobile UI Scale', [
                     { value: '0.8', text: '80% (Small)' },
                     { value: '1.0', text: '100% (Normal)' },
@@ -83,6 +83,13 @@
                     { value: '1.5', text: '150% (Extra Large)' }
                 ], '1.0'));
                 
+                body.appendChild(createSelect('opuc_gallery_thumb_size', 'Gallery Thumbnail Size', [
+                    { value: '80px', text: 'Small (80px)' },
+                    { value: '100px', text: 'Medium (100px)' },
+                    { value: '150px', text: 'Large (150px)' },
+                    { value: '200px', text: 'X-Large (200px)' }
+                ], '100px'));
+
                 body.appendChild(createToggle('opuc_staging_enabled', 'Enable Staging Ribbon', true));
                 body.appendChild(createInput('opuc_upload_shortcut', 'Clipboard Upload Shortcut', 'Alt+V', '<small style="color:var(--opuc-text-muted);">(e.g., Ctrl+V or Alt+V)</small>'));
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
@@ -122,6 +129,7 @@
         saveAndClose: function() {
             window.OPUcConfig.set('opuc_theme', document.getElementById('opuc_theme').value);
             window.OPUcConfig.set('opuc_ui_scale', document.getElementById('opuc_ui_scale').value);
+            window.OPUcConfig.set('opuc_gallery_thumb_size', document.getElementById('opuc_gallery_thumb_size').value);
             window.OPUcConfig.set('opuc_staging_enabled', document.getElementById('opuc_staging_enabled').checked);
             window.OPUcConfig.set('opuc_upload_shortcut', document.getElementById('opuc_upload_shortcut').value);
             window.OPUcConfig.set('opuc_intercept_paste_urls', document.getElementById('opuc_intercept_paste_urls').checked);
@@ -129,9 +137,11 @@
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             window.OPUcConfig.set('opuc_format_tag', document.getElementById('opuc_format_tag').value);
 
-            if (window.OPUcUI) window.OPUcUI.toggleStaging(document.getElementById('opuc_staging_enabled').checked);
+            // FIXED: Uses the new multi-instance function name
+            if (window.OPUcUI && typeof window.OPUcUI.toggleStagingAll === 'function') {
+                window.OPUcUI.toggleStagingAll(document.getElementById('opuc_staging_enabled').checked);
+            }
             
-            // Instantly apply the new theme and scale!
             if (window.OPUcTheme) window.OPUcTheme.refresh();
 
             this.close();
