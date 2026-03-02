@@ -62,29 +62,54 @@
                 if(!textArea) return;
             }
 
-            // Generate Base Tag (Use Override or Global Default)
+            // 1. Zjistit aktuálně vybraný formát pro dané okno
+            const parentForm = textArea.closest('.post.content') || document.getElementById('article-form-main');
+            let currentBodyType = 'html';
+            if (parentForm) {
+                const select = parentForm.querySelector('select[name="bodyType"]');
+                if (select) currentBodyType = select.value;
+            }
+
+            // 2. Vyřešit finální Injekční tag
             let formatString = metadata.formatOverride || window.OPUcConfig.settings.formatTag;
+            
+            if (formatString === 'auto') {
+                if (currentBodyType === 'html') formatString = '<img src="%url%">';
+                else if (currentBodyType === 'radeox') formatString = '[img:%url%]';
+                else if (currentBodyType === 'markdown') formatString = '![](%url%)';
+                else if (currentBodyType === 'plain') formatString = '%url%';
+                else formatString = '<img src="%url%">';
+            }
+
             let formattedTag = formatString.replace(/%url%/g, imageUrl);
 
-            // Stitch Caption if it exists
+            // 3. Přidání popisku (Caption)
             if (metadata.caption) {
-                const pos = window.OPUcConfig.settings.captionPosition; 
-                const spc = window.OPUcConfig.settings.captionSpacing; 
-                
-                let sep = '\n';
-                if (spc === 'br') sep = '<br>';
-                else if (spc === 'br2') sep = '<br><br>';
-                else if (spc === 'space') sep = ' ';
-
-                if (pos === 'above') {
-                    formattedTag = metadata.caption + sep + formattedTag;
+                // CHYTRÝ MARKDOWN: Pokud formát je Markdown, vložíme popisek rovnou do závorek!
+                if (formatString === '![](%url%)' || formatString === '![image](%url%)') {
+                    formattedTag = `![${metadata.caption}](${imageUrl})`;
                 } else {
-                    formattedTag = formattedTag + sep + metadata.caption;
+                    // Pro všechny ostatní formáty lepíme nad/pod
+                    const pos = window.OPUcConfig.settings.captionPosition; 
+                    const spc = window.OPUcConfig.settings.captionSpacing; 
+                    
+                    let sep = '\n'; // Default fallback
+                    if (spc === 'br') sep = (currentBodyType === 'html') ? '<br>' : '\n';
+                    else if (spc === 'br2') sep = (currentBodyType === 'html') ? '<br><br>' : '\n\n';
+                    else if (spc === 'space') sep = ' ';
+
+                    if (pos === 'above') {
+                        formattedTag = metadata.caption + sep + formattedTag;
+                    } else {
+                        formattedTag = formattedTag + sep + metadata.caption;
+                    }
                 }
             }
             
-            formattedTag += '\n'; // Add trailing break to separate multiple uploads
+            // Finální oddělovač za celým blokem obrázku (aby se obrázky neslily)
+            formattedTag += (currentBodyType === 'html') ? '\n' : '\n\n';
             
+            // 4. Samotná Injekce do okna
             const startPos = textArea.selectionStart;
             const endPos = textArea.selectionEnd;
             

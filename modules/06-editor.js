@@ -55,39 +55,23 @@
             container.dataset.index = index;
             container.draggable = true; 
             
-            container.style.cssText = `
-                width: 120px; display: flex; flex-direction: column; 
-                border: 1px solid var(--opuc-border); border-radius: 4px; overflow: hidden; 
-                background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
-                cursor: grab; user-select: none;
-            `;
+            container.style.cssText = `width: 120px; display: flex; flex-direction: column; border: 1px solid var(--opuc-border); border-radius: 4px; overflow: hidden; background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab; user-select: none;`;
 
-            container.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', index);
-                setTimeout(() => container.style.opacity = '0.4', 0);
-            });
-            container.addEventListener('dragend', () => {
-                container.style.opacity = '1';
-                document.querySelectorAll('.opuc-stage-tile').forEach(el => el.classList.remove('opuc-drag-left', 'opuc-drag-right'));
-            });
+            container.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', index); setTimeout(() => container.style.opacity = '0.4', 0); });
+            container.addEventListener('dragend', () => { container.style.opacity = '1'; document.querySelectorAll('.opuc-stage-tile').forEach(el => el.classList.remove('opuc-drag-left', 'opuc-drag-right')); });
             container.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                const rect = container.getBoundingClientRect();
-                const midPoint = rect.left + rect.width / 2;
-                document.querySelectorAll('.opuc-stage-tile').forEach(el => {
-                    if (el !== container) el.classList.remove('opuc-drag-left', 'opuc-drag-right');
-                });
+                const rect = container.getBoundingClientRect(); const midPoint = rect.left + rect.width / 2;
+                document.querySelectorAll('.opuc-stage-tile').forEach(el => { if (el !== container) el.classList.remove('opuc-drag-left', 'opuc-drag-right'); });
                 if (e.clientX < midPoint) { container.classList.add('opuc-drag-left'); container.classList.remove('opuc-drag-right'); } 
                 else { container.classList.add('opuc-drag-right'); container.classList.remove('opuc-drag-left'); }
             });
             container.addEventListener('dragleave', () => container.classList.remove('opuc-drag-left', 'opuc-drag-right'));
             container.addEventListener('drop', (e) => {
-                e.preventDefault();
-                container.classList.remove('opuc-drag-left', 'opuc-drag-right');
+                e.preventDefault(); container.classList.remove('opuc-drag-left', 'opuc-drag-right');
                 const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
                 if (!isNaN(draggedIndex) && draggedIndex !== index) {
-                    const rect = container.getBoundingClientRect();
-                    const insertBefore = e.clientX < (rect.left + rect.width / 2);
+                    const rect = container.getBoundingClientRect(); const insertBefore = e.clientX < (rect.left + rect.width / 2);
                     const itemToMove = this.queue.splice(draggedIndex, 1)[0];
                     let targetIndex = index;
                     if (draggedIndex < index) targetIndex--; 
@@ -110,7 +94,6 @@
             removeBtn.onclick = (e) => { e.preventDefault(); this.removeFromQueue(index); };
             topHalf.appendChild(removeBtn);
 
-            // THE EDIT BUBBLE
             const hasCaption = !!file.opucCaption || !!file.opucFormatOverride;
             const editBtn = document.createElement('button');
             editBtn.innerHTML = hasCaption ? '💬' : '✏️';
@@ -144,13 +127,12 @@
             return container;
         },
 
-        // NEW: The Caption & Override Editor Modal
         openCaptionModal: function(index) {
             const file = this.queue[index];
             if (!file) return;
 
             let modal = document.getElementById('opuc-caption-modal');
-            if (modal) modal.remove(); // Rebuild fresh each time
+            if (modal) modal.remove(); 
 
             modal = document.createElement('div');
             modal.id = 'opuc-caption-modal';
@@ -174,7 +156,6 @@
 
             const infoRow = document.createElement('div');
             infoRow.style.cssText = 'display: flex; gap: 15px; align-items: center;';
-            
             const imgPreview = document.createElement('img');
             imgPreview.style.cssText = 'width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid var(--opuc-border); background: #000;';
             this.createThumbnail(file, (data) => imgPreview.src = data);
@@ -182,23 +163,17 @@
             const fileData = document.createElement('div');
             fileData.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis;';
             fileData.innerHTML = `<b style="color:var(--opuc-text-main);">${file.name}</b><br>${formatBytes(file.size)}`;
-            
-            infoRow.appendChild(imgPreview);
-            infoRow.appendChild(fileData);
-            body.appendChild(infoRow);
+            infoRow.appendChild(imgPreview); infoRow.appendChild(fileData); body.appendChild(infoRow);
 
             const capLabel = document.createElement('label');
             capLabel.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted);';
             capLabel.innerText = 'Image Caption:';
             const capInput = document.createElement('textarea');
-            capInput.rows = 2;
-            capInput.value = file.opucCaption || '';
-            capInput.placeholder = 'e.g., Dusky Thrush taken at Odori';
+            capInput.rows = 2; capInput.value = file.opucCaption || ''; capInput.placeholder = 'e.g., Dusky Thrush taken at Odori';
             capInput.style.cssText = 'width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: inherit; resize: vertical; box-sizing: border-box; outline: none; margin-top: 4px;';
             
             const capWrapper = document.createElement('div');
-            capWrapper.appendChild(capLabel); capWrapper.appendChild(capInput);
-            body.appendChild(capWrapper);
+            capWrapper.appendChild(capLabel); capWrapper.appendChild(capInput); body.appendChild(capWrapper);
 
             const fmtLabel = document.createElement('label');
             fmtLabel.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted); display: block; margin-bottom: 4px;';
@@ -211,7 +186,8 @@
                 { val: '<img src="%url%">', text: 'HTML (<img>)' },
                 { val: '<a href="%url%">%url%</a>', text: 'HTML (Link)' },
                 { val: '[img:%url%]', text: 'Radeox ([img])' },
-                { val: '![image](%url%)', text: 'Markdown (![])' }
+                { val: '![](%url%)', text: 'Markdown (![])' },
+                { val: '%url%', text: 'Plain Text URL' }
             ];
             options.forEach(opt => {
                 const el = document.createElement('option');
@@ -221,8 +197,7 @@
             });
             
             const fmtWrapper = document.createElement('div');
-            fmtWrapper.appendChild(fmtLabel); fmtWrapper.appendChild(fmtSelect);
-            body.appendChild(fmtWrapper);
+            fmtWrapper.appendChild(fmtLabel); fmtWrapper.appendChild(fmtSelect); body.appendChild(fmtWrapper);
 
             const footer = document.createElement('div');
             footer.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px;';
@@ -247,20 +222,14 @@
             modal.appendChild(container); document.body.appendChild(modal);
         },
 
-        removeFromQueue: function(index) {
-            this.queue[index] = null; 
-            this.renderAllStagedItems();
-        },
+        removeFromQueue: function(index) { this.queue[index] = null; this.renderAllStagedItems(); },
 
         refreshControls: function() {
             const activeItems = this.queue.filter(item => item !== null).length;
             const allControls = document.querySelectorAll('.opuc-staging-controls');
-            
             allControls.forEach(controls => {
                 if (activeItems > 0) {
-                    controls.style.display = 'flex';
-                    controls.innerHTML = ''; 
-                    
+                    controls.style.display = 'flex'; controls.innerHTML = ''; 
                     const uploadBtn = document.createElement('button');
                     uploadBtn.innerHTML = `Upload All (${activeItems})`; 
                     uploadBtn.style.cssText = 'background: var(--opuc-accent); color: #000; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background-image 0.2s linear;';
@@ -268,9 +237,7 @@
                     uploadBtn.onclick = async (e) => {
                         e.preventDefault();
                         const parentForm = uploadBtn.closest('.post.content') || document.getElementById('article-form-main');
-                        const targetTextArea = parentForm.querySelector('textarea[name="body"]');
-                        window.OPUcConfig.state.activeTextArea = targetTextArea;
-
+                        window.OPUcConfig.state.activeTextArea = parentForm.querySelector('textarea[name="body"]');
                         if (this.isUploading) { this.isUploading = false; return; }
                         await this.flushQueue(uploadBtn, activeItems);
                     };
@@ -283,9 +250,7 @@
         },
 
         flushQueue: async function(clickedUploadBtn, itemsToUpload) {
-            this.isUploading = true;
-            let completed = 0;
-
+            this.isUploading = true; let completed = 0;
             document.querySelectorAll('.opuc-staging-controls button').forEach(btn => {
                 btn.innerHTML = '✖ Cancel';
                 btn.style.setProperty('background-image', 'linear-gradient(90deg, #F44336 0%, #aaa 0%)', 'important');
@@ -297,16 +262,10 @@
                 const file = this.queue[i];
                 if (file !== null) {
                     try {
-                        // Extract metadata from the file object
-                        const metadata = {
-                            caption: file.opucCaption || '',
-                            formatOverride: file.opucFormatOverride || ''
-                        };
-                        
-                        await window.OPUcAPI.upload(file, metadata); // Pass to API
+                        const metadata = { caption: file.opucCaption || '', formatOverride: file.opucFormatOverride || '' };
+                        await window.OPUcAPI.upload(file, metadata); 
                         document.querySelectorAll(`.opuc-stage-tile[data-index="${i}"]`).forEach(t => t.style.opacity = '0.3');
-                        this.queue[i] = null; 
-                        completed++;
+                        this.queue[i] = null; completed++;
                         const pct = Math.round((completed / itemsToUpload) * 100);
                         document.querySelectorAll('.opuc-staging-controls button').forEach(btn => {
                             btn.style.setProperty('background-image', `linear-gradient(90deg, #F44336 ${pct}%, #aaa ${pct}%)`, 'important');
@@ -314,25 +273,20 @@
                     } catch (err) {}
                 }
             }
-            this.isUploading = false;
-            this.renderAllStagedItems(); 
+            this.isUploading = false; this.renderAllStagedItems(); 
         },
 
         directUploadBatch: async function(filesArray) {
-            this.isUploading = true;
-            let completed = 0;
-            const total = filesArray.length;
+            this.isUploading = true; let completed = 0; const total = filesArray.length;
             window.OPUcUI.setWorkingState(() => { this.isUploading = false; });
             for (const file of filesArray) {
                 if (!this.isUploading) break;
                 try {
-                    await window.OPUcAPI.upload(file, {}); // Empty metadata for direct upload
-                    completed++;
-                    window.OPUcUI.updateProgress(completed, total);
+                    await window.OPUcAPI.upload(file, {}); 
+                    completed++; window.OPUcUI.updateProgress(completed, total);
                 } catch (err) {}
             }
-            this.isUploading = false;
-            window.OPUcUI.resetButtonState();
+            this.isUploading = false; window.OPUcUI.resetButtonState();
         }
     };
 

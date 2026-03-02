@@ -32,8 +32,8 @@
             get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); },
             get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); },
             
-            // Formatting & Captions
-            get formatTag() { return window.OPUcConfig.get('opuc_format_tag', '<img src="%url%">'); },
+            // Formatting & Captions (Updated for Auto-Detect)
+            get formatTag() { return window.OPUcConfig.get('opuc_default_format_tag', 'auto'); },
             get captionPosition() { return window.OPUcConfig.get('opuc_caption_position', 'below'); },
             get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'br2'); }
         },
