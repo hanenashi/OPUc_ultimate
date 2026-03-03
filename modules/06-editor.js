@@ -47,7 +47,6 @@
             this.refreshControls();
         },
 
-        // FIXED: Function restored!
         removeFromQueue: function(index) {
             this.queue[index] = null; 
             this.renderAllStagedItems();
@@ -102,15 +101,16 @@
             const editBtn = document.createElement('button');
             editBtn.innerHTML = hasCaption ? '💬' : '✏️';
             editBtn.title = hasCaption ? (file.opucCaption || 'Custom Style Active') : 'Add Caption / Style Override';
-            // FIXED: Pink pencil (#E91E63)
-            editBtn.style.cssText = `position: absolute; top: 4px; right: 4px; background: ${hasCaption ? 'rgba(76, 175, 80, 0.95)' : 'rgba(233, 30, 99, 0.9)'}; color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
+            // FIXED: Yellow-Green pencil
+            editBtn.style.cssText = `position: absolute; top: 4px; right: 4px; background: ${hasCaption ? 'rgba(76, 175, 80, 0.95)' : 'rgba(217, 226, 100, 0.95)'}; color: #000; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
             editBtn.onclick = (e) => { e.preventDefault(); this.openCaptionModal(index); };
             topHalf.appendChild(editBtn);
 
             const cropBtn = document.createElement('button');
             cropBtn.innerHTML = '✂️';
             cropBtn.title = 'Crop & Resize Image';
-            cropBtn.style.cssText = `position: absolute; bottom: 4px; right: 4px; background: rgba(33, 150, 243, 0.9); color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
+            // FIXED: Darker blue scissors
+            cropBtn.style.cssText = `position: absolute; bottom: 4px; right: 4px; background: rgba(33, 84, 243, 0.9); color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
             cropBtn.onclick = (e) => { e.preventDefault(); if (window.OPUcImageProcessor) window.OPUcImageProcessor.open(index); };
             topHalf.appendChild(cropBtn);
 
@@ -156,6 +156,7 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-caption-modal';
+            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
             const container = document.createElement('div');
@@ -199,12 +200,7 @@
             const stySelect = document.createElement('select');
             stySelect.style.cssText = 'width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: inherit; outline: none; box-sizing: border-box;';
             
-            const options = [
-                { val: '', text: '-- Use Global Default --' },
-                { val: 'url', text: 'Pure URL' }, { val: 'image', text: 'Image' },
-                { val: 'link', text: 'Link' }, { val: 'thumb', text: 'Linked Thumbnail' }
-            ];
-
+            const options = [{ val: '', text: '-- Use Global Default --' }, { val: 'url', text: 'Pure URL' }, { val: 'image', text: 'Image' }, { val: 'link', text: 'Link' }, { val: 'thumb', text: 'Linked Thumbnail' }];
             options.forEach(opt => {
                 const el = document.createElement('option');
                 el.value = opt.val; el.text = opt.text;
@@ -224,16 +220,16 @@
             saveBtn.innerText = 'Save';
             saveBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
 
-            // FIXED: Global Document Key Listener for absolute reliability
+            // FIXED: Capture Phase Keydown true
             const keyHandler = (e) => {
-                if (e.key === 'Escape') { e.preventDefault(); cleanup(); } 
+                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cleanup(); } 
                 else if (e.key === 'Enter') {
-                    if (e.target.tagName !== 'TEXTAREA' || e.ctrlKey) { e.preventDefault(); doSave(); }
+                    if (e.target.tagName !== 'TEXTAREA' || e.ctrlKey) { e.preventDefault(); e.stopPropagation(); doSave(); }
                 }
             };
-            document.addEventListener('keydown', keyHandler);
+            document.addEventListener('keydown', keyHandler, true);
 
-            const cleanup = () => { document.removeEventListener('keydown', keyHandler); modal.remove(); };
+            const cleanup = () => { document.removeEventListener('keydown', keyHandler, true); modal.remove(); };
             const doSave = () => {
                 file.opucCaption = capInput.value.trim();
                 file.opucStyleOverride = stySelect.value;
@@ -321,6 +317,7 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-preview-modal';
+            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
             const container = document.createElement('div');
@@ -352,17 +349,18 @@
             okBtn.innerText = 'Close';
             okBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
 
-            // FIXED: Global Document Key Listener
             const keyHandler = (e) => {
-                if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); cleanup(); }
+                if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); cleanup(); }
             };
-            document.addEventListener('keydown', keyHandler);
+            document.addEventListener('keydown', keyHandler, true);
 
-            const cleanup = () => { document.removeEventListener('keydown', keyHandler); modal.remove(); };
+            const cleanup = () => { document.removeEventListener('keydown', keyHandler, true); modal.remove(); };
 
             closeBtn.onclick = cleanup; okBtn.onclick = cleanup;
             footer.appendChild(okBtn); container.appendChild(header); container.appendChild(body); container.appendChild(footer);
             modal.appendChild(container); document.body.appendChild(modal);
+
+            modal.focus();
         },
 
         flushQueue: async function(itemsToUpload) {

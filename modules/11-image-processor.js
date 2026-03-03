@@ -15,7 +15,7 @@
         originalFile: null,
         originalDimensions: { w: 0, h: 0 },
         calcTimeout: null,
-        keyHandler: null, // Stores reference for cleanup
+        keyHandler: null,
 
         init: function() {
             if (!document.getElementById('cropper-css')) {
@@ -40,6 +40,7 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-crop-modal';
+            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 2147483649; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px); outline: none; font-family: var(--opuc-font);`;
 
             const container = document.createElement('div');
@@ -68,7 +69,7 @@
             controlsArea.style.cssText = 'padding: 15px 20px; background: var(--opuc-bg-primary); border-top: 1px solid var(--opuc-border); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex-shrink: 0;';
 
             const topControls = document.createElement('div');
-            topControls.style.cssText = 'display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center;';
+            topControls.style.cssText = 'display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center;';
 
             const presetGroup = document.createElement('div');
             presetGroup.style.cssText = 'display: flex; gap: 8px;';
@@ -84,12 +85,27 @@
             presetGroup.appendChild(createPresetBtn('4:3', 4/3));
             presetGroup.appendChild(createPresetBtn('16:9', 16/9));
 
+            // NEW: Universal Resize Inputs
+            const resizeGroup = document.createElement('div');
+            resizeGroup.style.cssText = 'display: flex; gap: 6px; align-items: center; color: var(--opuc-text-main); font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--opuc-border);';
+            resizeGroup.innerHTML = `
+                Out: 
+                <input type="text" id="opuc-crop-w" placeholder="W" title="Output Width" style="width: 45px; padding: 4px; background: var(--opuc-bg-secondary); border: 1px solid var(--opuc-border); color: var(--opuc-text-main); border-radius: 3px; text-align: center; font-size: 12px; outline: none;"> x 
+                <input type="text" id="opuc-crop-h" placeholder="H" title="Output Height" style="width: 45px; padding: 4px; background: var(--opuc-bg-secondary); border: 1px solid var(--opuc-border); color: var(--opuc-text-main); border-radius: 3px; text-align: center; font-size: 12px; outline: none;"> px
+            `;
+            const debounceUpdate = () => { clearTimeout(this.calcTimeout); this.calcTimeout = setTimeout(() => this.updateStatsUI(), 300); };
+            resizeGroup.querySelector('#opuc-crop-w').addEventListener('input', debounceUpdate);
+            resizeGroup.querySelector('#opuc-crop-h').addEventListener('input', debounceUpdate);
+
             const statsGroup = document.createElement('div');
             statsGroup.style.cssText = 'font-size: 12px; color: var(--opuc-text-muted); text-align: right; line-height: 1.6;';
             statsGroup.id = 'opuc-crop-stats';
             statsGroup.innerHTML = `<b>Original:</b> Loading...<br><b>New:</b> Calculating...`;
 
-            topControls.appendChild(presetGroup); topControls.appendChild(statsGroup); controlsArea.appendChild(topControls);
+            topControls.appendChild(presetGroup); 
+            topControls.appendChild(resizeGroup);
+            topControls.appendChild(statsGroup); 
+            controlsArea.appendChild(topControls);
 
             const footer = document.createElement('div');
             footer.style.cssText = 'padding: 12px 20px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;';
@@ -104,17 +120,19 @@
             saveBtn.style.cssText = 'padding: 8px 20px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
             saveBtn.onclick = () => this.applyCrop();
 
-            // FIXED: Global Document Listener for Absolute Priority
+            // FIXED: Capture Phase True
             this.keyHandler = (e) => {
-                if (e.key === 'Escape') { e.preventDefault(); this.close(); }
-                if (e.key === 'Enter') { e.preventDefault(); this.applyCrop(); }
+                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.close(); }
+                if (e.key === 'Enter' && e.target.tagName !== 'INPUT') { e.preventDefault(); e.stopPropagation(); this.applyCrop(); }
             };
-            document.addEventListener('keydown', this.keyHandler);
+            document.addEventListener('keydown', this.keyHandler, true);
 
             footer.appendChild(cancelBtn); footer.appendChild(saveBtn);
             body.appendChild(canvasArea); body.appendChild(controlsArea);
             container.appendChild(header); container.appendChild(body); container.appendChild(footer);
             modal.appendChild(container); document.body.appendChild(modal);
+
+            modal.focus();
 
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -131,6 +149,23 @@
 
         initCropper: function(imgElement) {
             if (typeof Cropper === 'undefined') { alert("Cropper.js failed to load."); return; }
+            
+            // SMART PARSER: Prefill the Output Resize boxes based on global setting
+            const glob = window.OPUcConfig.settings.autoResize || '100%';
+            let initW = ''; let initH = '';
+            
+            if (glob.endsWith('%')) {
+                const p = parseInt(glob) / 100;
+                if (!isNaN(p) && p > 0 && p !== 1) initW = Math.round(this.originalDimensions.w * p);
+            } else if (glob.includes('x')) {
+                const parts = glob.toLowerCase().split('x');
+                if (parts[0] && parseInt(parts[0])) initW = parseInt(parts[0]);
+                if (parts.length > 1 && parts[1] && parseInt(parts[1])) initH = parseInt(parts[1]);
+            }
+            
+            document.getElementById('opuc-crop-w').value = initW;
+            document.getElementById('opuc-crop-h').value = initH;
+
             this.cropperInstance = new Cropper(imgElement, {
                 viewMode: 1, dragMode: 'crop', autoCropArea: 0.9, restore: false, guides: true,
                 center: true, highlight: false, cropBoxMovable: true, cropBoxResizable: true,
@@ -147,8 +182,13 @@
             const statsBox = document.getElementById('opuc-crop-stats');
             if (!statsBox) return;
 
-            const cropData = this.cropperInstance.getData(true); 
-            const canvas = this.cropperInstance.getCroppedCanvas();
+            let opts = { imageSmoothingEnabled: true, imageSmoothingQuality: 'high' };
+            const outW = parseInt(document.getElementById('opuc-crop-w').value);
+            const outH = parseInt(document.getElementById('opuc-crop-h').value);
+            if (!isNaN(outW) && outW > 0) opts.width = outW;
+            if (!isNaN(outH) && outH > 0) opts.height = outH;
+
+            const canvas = this.cropperInstance.getCroppedCanvas(opts);
             if (!canvas) return;
 
             canvas.toBlob((blob) => {
@@ -157,14 +197,22 @@
                 let colorClass = 'var(--opuc-success)';
                 if (blob.size > this.originalFile.size) colorClass = 'var(--opuc-danger)';
 
+                // Canvas dimensions inherently respect the 'opts' overrides we passed to Cropper!
                 statsBox.innerHTML = `<b>Original:</b> ${this.originalDimensions.w} x ${this.originalDimensions.h}px (${origSizeStr})<br>
-                                      <b>New Crop:</b> ${cropData.width} x ${cropData.height}px (<span style="color:${colorClass}; font-weight:bold;">${newSizeStr}</span>)`;
+                                      <b>New Output:</b> ${canvas.width} x ${canvas.height}px (<span style="color:${colorClass}; font-weight:bold;">${newSizeStr}</span>)`;
             }, 'image/jpeg', 0.85); 
         },
 
         applyCrop: function() {
             if (!this.cropperInstance) return;
-            const canvas = this.cropperInstance.getCroppedCanvas({ imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
+            
+            let opts = { imageSmoothingEnabled: true, imageSmoothingQuality: 'high' };
+            const outW = parseInt(document.getElementById('opuc-crop-w').value);
+            const outH = parseInt(document.getElementById('opuc-crop-h').value);
+            if (!isNaN(outW) && outW > 0) opts.width = outW;
+            if (!isNaN(outH) && outH > 0) opts.height = outH;
+
+            const canvas = this.cropperInstance.getCroppedCanvas(opts);
 
             canvas.toBlob((blob) => {
                 const ext = this.originalFile.name.split('.').pop().toLowerCase() || 'jpg';
@@ -183,11 +231,12 @@
         },
 
         close: function() {
-            if (this.keyHandler) { document.removeEventListener('keydown', this.keyHandler); this.keyHandler = null; }
+            if (this.keyHandler) { document.removeEventListener('keydown', this.keyHandler, true); this.keyHandler = null; }
             if (this.cropperInstance) { this.cropperInstance.destroy(); this.cropperInstance = null; }
             const modal = document.getElementById('opuc-crop-modal');
             if (modal) modal.remove();
-            this.targetIndex = null; this.originalFile = null;
+            this.targetIndex = null;
+            this.originalFile = null;
         }
     };
 })();

@@ -27,7 +27,6 @@
                 }
             });
 
-            // FIXED: Global Escape listener for Menus and Gallery
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     document.querySelectorAll('.opuc-context-menu').forEach(m => m.style.display = 'none');
@@ -35,7 +34,7 @@
                         window.OPUcGallery.close();
                     }
                 }
-            });
+            }, true); // Capture phase priority
         },
 
         buildUIForForm: function(container, textArea) {
@@ -54,7 +53,6 @@
             
             const stagingControls = document.createElement('div');
             stagingControls.className = 'opuc-staging-controls';
-            // FIXED: Removed dashed border-top
             stagingControls.style.cssText = 'width: 100%; display: flex; justify-content: flex-end; margin-top: 8px; padding-top: 8px; display: none;';
             
             stagingArea.appendChild(stagingItems);
@@ -111,11 +109,16 @@
                 if (this.isWorking) return; 
                 document.querySelectorAll('.opuc-context-menu').forEach(m => { if (m !== menu) m.style.display = 'none'; });
                 
-                // FIXED: Dynamically update toggle text on open
                 const toggleBtn = menu.querySelector('#opuc-menu-toggle');
                 if (toggleBtn) {
                     const isEnabled = window.OPUcConfig.settings.stagingEnabled;
                     toggleBtn.innerHTML = isEnabled ? '⏸️ <span style="margin-left: 8px;">Disable Staging</span>' : '▶️ <span style="margin-left: 8px;">Enable Staging</span>';
+                }
+
+                // NEW: Dynamically update the Quick Resize string on open
+                const resizeBtn = menu.querySelector('#opuc-menu-resize');
+                if (resizeBtn) {
+                    resizeBtn.innerHTML = `↔️ <span style="margin-left: 8px;">Resize (${window.OPUcConfig.settings.autoResize})</span>`;
                 }
 
                 menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
@@ -159,6 +162,15 @@
             }));
             menu.appendChild(createItem('opuc-menu-gallery', '🖼️ <span style="margin-left: 8px;">Gallery</span>', () => { if (window.OPUcGallery) window.OPUcGallery.open(); }, !isLoggedIn));
             
+            // NEW: Quick Resize Setter
+            menu.appendChild(createItem('opuc-menu-resize', '↔️ <span style="margin-left: 8px;">Resize</span>', () => {
+                const current = window.OPUcConfig.settings.autoResize;
+                const res = prompt("Global Resize Override\nFormats: 800x, x600, 800x600, 50%, 100%", current);
+                if (res !== null && res.trim() !== '') {
+                    window.OPUcConfig.set('opuc_auto_resize', res.trim());
+                }
+            }));
+
             menu.appendChild(createItem('opuc-menu-toggle', '⏸️ <span style="margin-left: 8px;">Toggle Staging</span>', () => {
                 const current = window.OPUcConfig.settings.stagingEnabled;
                 window.OPUcConfig.set('opuc_staging_enabled', !current);

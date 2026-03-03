@@ -8,12 +8,11 @@
             if (!modal) {
                 modal = document.createElement('div');
                 modal.id = 'opuc-settings-modal';
-                modal.tabIndex = -1; // FIXED: Allows the modal to catch keyboard events globally
+                modal.tabIndex = -1; 
                 modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483647; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
                 const container = document.createElement('div');
                 container.className = 'opuc-scalable'; 
-                // FIXED: Enforce max-height and strict flex column for scrolling child
                 container.style.cssText = `width: 90%; max-width: 500px; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font); max-height: 90vh;`;
 
                 const header = document.createElement('div');
@@ -25,7 +24,6 @@
                 closeBtn.onclick = () => this.close();
                 header.appendChild(closeBtn);
 
-                // FIXED: flex: 1 and overflow-y: auto traps scrolling perfectly inside the modal
                 const body = document.createElement('div');
                 body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
@@ -46,11 +44,7 @@
                 const createSelect = (id, label, options, defaultVal) => {
                     const row = document.createElement('div');
                     row.style.cssText = 'display: flex; flex-direction: column; gap: 5px; font-size: 14px;';
-                    
                     let currentVal = window.OPUcConfig.get(id, defaultVal);
-                    if (currentVal === 'br' || currentVal === 'nl') currentVal = 'single';
-                    if (currentVal === 'br2' || currentVal === 'nl2' || currentVal === 'auto') currentVal = 'double';
-
                     let selectHTML = `<select id="${id}" style="padding: 8px; background: var(--opuc-bg-secondary); color: var(--opuc-text-main); border: 1px solid var(--opuc-border); border-radius: 4px; outline: none; font-family: inherit;">`;
                     options.forEach(opt => { selectHTML += `<option value="${opt.value}" ${currentVal === opt.value ? 'selected' : ''}>${opt.text}</option>`; });
                     selectHTML += `</select>`;
@@ -80,36 +74,12 @@
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
                 
                 body.appendChild(createHeader('📝 Captions & Formatting'));
-                body.appendChild(createSelect('opuc_format', 'Format (Syntax)', [
-                    { value: 'auto', text: 'Auto-detect from Form' },
-                    { value: 'plain', text: 'Text (Plain)' },
-                    { value: 'html', text: 'HTML' },
-                    { value: 'radeox', text: 'Radeox' },
-                    { value: 'markdown', text: 'Markdown' }
-                ], 'auto'));
-
-                body.appendChild(createSelect('opuc_style', 'Style (Tag Type)', [
-                    { value: 'url', text: 'Pure URL' },
-                    { value: 'image', text: 'Image' },
-                    { value: 'link', text: 'Link' },
-                    { value: 'thumb', text: 'Linked Thumbnail' }
-                ], 'image'));
-
+                body.appendChild(createInput('opuc_auto_resize', 'Global Auto-Resize (Prefills Processor)', '100%', '<small style="color:var(--opuc-text-muted);">(e.g. 800x, x600, 800x600, 50%)</small>'));
+                body.appendChild(createSelect('opuc_format', 'Format (Syntax)', [{ value: 'auto', text: 'Auto-detect from Form' }, { value: 'plain', text: 'Text (Plain)' }, { value: 'html', text: 'HTML' }, { value: 'radeox', text: 'Radeox' }, { value: 'markdown', text: 'Markdown' }], 'auto'));
+                body.appendChild(createSelect('opuc_style', 'Style (Tag Type)', [{ value: 'url', text: 'Pure URL' }, { value: 'image', text: 'Image' }, { value: 'link', text: 'Link' }, { value: 'thumb', text: 'Linked Thumbnail' }], 'image'));
                 body.appendChild(createSelect('opuc_caption_position', 'Caption Position', [{ value: 'below', text: 'Below Image' }, { value: 'above', text: 'Above Image' }], 'below'));
-                
-                body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing (Between text & img)', [
-                    { value: 'single', text: 'Single Break' },
-                    { value: 'double', text: 'Double Break (Paragraph)' },
-                    { value: 'space', text: 'Inline Space' },
-                    { value: 'none', text: 'None (Flush)' }
-                ], 'double'));
-
-                body.appendChild(createSelect('opuc_between_spacing', 'Spacing BETWEEN multiple uploads', [
-                    { value: 'single', text: 'Single Break' },
-                    { value: 'double', text: 'Double Break (Paragraph)' },
-                    { value: 'space', text: 'Inline Space' },
-                    { value: 'none', text: 'None (Flush)' }
-                ], 'double'));
+                body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing', [{ value: 'single', text: 'Single Break' }, { value: 'double', text: 'Double Break' }, { value: 'space', text: 'Inline Space' }, { value: 'none', text: 'None' }], 'double'));
+                body.appendChild(createSelect('opuc_between_spacing', 'Spacing BETWEEN uploads', [{ value: 'single', text: 'Single Break' }, { value: 'double', text: 'Double Break' }, { value: 'space', text: 'Inline Space' }, { value: 'none', text: 'None' }], 'double'));
 
                 const footer = document.createElement('div');
                 footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; flex-shrink: 0;';
@@ -118,11 +88,11 @@
                 saveBtn.style.cssText = 'background: var(--opuc-accent); color: #000; font-family: inherit; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
                 saveBtn.onclick = () => this.saveAndClose();
 
-                // FIXED: Keyboard Listener for Settings
+                // FIXED: Capture Phase Keydown
                 modal.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') { e.preventDefault(); this.close(); }
-                    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); this.saveAndClose(); }
-                });
+                    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.close(); }
+                    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); e.stopPropagation(); this.saveAndClose(); }
+                }, true);
 
                 footer.appendChild(saveBtn);
                 container.appendChild(header); container.appendChild(body); container.appendChild(footer);
@@ -144,6 +114,7 @@
             window.OPUcConfig.set('opuc_intercept_drop', document.getElementById('opuc_intercept_drop').checked);
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
+            window.OPUcConfig.set('opuc_auto_resize', document.getElementById('opuc_auto_resize').value);
             window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
             window.OPUcConfig.set('opuc_style', document.getElementById('opuc_style').value);
             window.OPUcConfig.set('opuc_caption_position', document.getElementById('opuc_caption_position').value);

@@ -29,10 +29,11 @@
             get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); },
             get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); },
             
+            get autoResize() { return window.OPUcConfig.get('opuc_auto_resize', '100%'); }, // NEW
+            
             get format() { return window.OPUcConfig.get('opuc_format', 'auto'); },
             get style() { return window.OPUcConfig.get('opuc_style', 'image'); },
             get captionPosition() { return window.OPUcConfig.get('opuc_caption_position', 'below'); },
-            // NEW: Semantic Spacing Defaults
             get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'double'); },
             get betweenSpacing() { return window.OPUcConfig.get('opuc_between_spacing', 'double'); }
         },
