@@ -34,7 +34,6 @@
             reader.readAsDataURL(file);
         },
 
-        // NEW: Background Client-Side Resize Engine
         applyAutoResize: function(file, resizeStr) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -184,7 +183,6 @@
             this.createThumbnail(file, (thumbData, w, h) => {
                 imgPreview.src = thumbData; imgPreview.style.opacity = '1'; resSpan.innerText = `${w}x${h}`;
 
-                // FIXED: Deep green auto-resize visual indicator
                 const glob = window.OPUcConfig.settings.autoResize;
                 if (glob && glob !== '100%' && !file.opucOriginalFile) {
                     let outW = w, outH = h;
@@ -218,11 +216,13 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-caption-modal';
+            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable'; 
-            container.style.cssText = `width: 90%; max-width: 400px; max-height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
+            // FIXED: Inverse Scaling Math
+            container.style.cssText = `width: calc(90vw / var(--opuc-scale)); max-width: calc(400px / var(--opuc-scale)); max-height: calc(90vh / var(--opuc-scale)); background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
 
             const header = document.createElement('div');
             header.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; font-weight: bold; flex-shrink: 0;';
@@ -377,11 +377,13 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-preview-modal';
+            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable';
-            container.style.cssText = `width: 90%; max-width: 600px; max-height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
+            // FIXED: Inverse Scaling Math
+            container.style.cssText = `width: calc(90vw / var(--opuc-scale)); max-width: calc(600px / var(--opuc-scale)); max-height: calc(90vh / var(--opuc-scale)); background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
 
             const header = document.createElement('div');
             header.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; font-weight: bold; flex-shrink: 0;';
@@ -418,6 +420,8 @@
             closeBtn.onclick = cleanup; okBtn.onclick = cleanup;
             footer.appendChild(okBtn); container.appendChild(header); container.appendChild(body); container.appendChild(footer);
             modal.appendChild(container); document.body.appendChild(modal);
+
+            modal.focus();
         },
 
         flushQueue: async function(itemsToUpload) {
@@ -438,7 +442,6 @@
                         const metadata = { caption: file.opucCaption || '', styleOverride: file.opucStyleOverride || '' };
                         const isLastItem = (completed === itemsToUpload - 1);
                         
-                        // FIXED: The Holy Grail Background Resizer
                         let fileToUpload = file;
                         if (glob && glob !== '100%' && !file.opucOriginalFile) {
                             fileToUpload = await this.applyAutoResize(file, glob);

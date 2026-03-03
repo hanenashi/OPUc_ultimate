@@ -40,11 +40,13 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-crop-modal';
+            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 2147483649; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px); outline: none; font-family: var(--opuc-font);`;
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable';
-            container.style.cssText = `width: 95%; max-width: 900px; max-height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);`;
+            // FIXED: Inverse Scaling Math
+            container.style.cssText = `width: calc(95vw / var(--opuc-scale)); max-width: calc(900px / var(--opuc-scale)); max-height: calc(90vh / var(--opuc-scale)); background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);`;
 
             const header = document.createElement('div');
             header.style.cssText = 'padding: 12px 20px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; color: var(--opuc-text-main); font-weight: bold; flex-shrink: 0;';
@@ -84,7 +86,6 @@
             presetGroup.appendChild(createPresetBtn('4:3', 4/3));
             presetGroup.appendChild(createPresetBtn('16:9', 16/9));
 
-            // FIXED: New UI layout with the Percentage sync field
             const resizeGroup = document.createElement('div');
             resizeGroup.style.cssText = 'display: flex; gap: 6px; align-items: center; color: var(--opuc-text-main); font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--opuc-border);';
             resizeGroup.innerHTML = `
@@ -168,7 +169,6 @@
             
             inputW.value = initW; inputH.value = initH; inputP.value = initP;
 
-            // SYNC ENGINE
             const debounceUpdate = () => { clearTimeout(this.calcTimeout); this.calcTimeout = setTimeout(() => this.updateStatsUI(), 300); };
             
             inputP.addEventListener('input', (e) => {

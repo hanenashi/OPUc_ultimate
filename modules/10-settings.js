@@ -15,7 +15,8 @@
 
                 const container = document.createElement('div');
                 container.className = 'opuc-scalable'; 
-                container.style.cssText = `width: 90%; max-width: 500px; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); color: var(--opuc-text-main); font-family: var(--opuc-font); max-height: 90vh;`;
+                // FIXED: Inverse Scaling Math applied to width, max-width, and max-height
+                container.style.cssText = `width: calc(90vw / var(--opuc-scale)); max-width: calc(500px / var(--opuc-scale)); max-height: calc(90vh / var(--opuc-scale)); background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
 
                 const header = document.createElement('div');
                 header.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;';
@@ -29,7 +30,6 @@
                 const body = document.createElement('div');
                 body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
-                // --- NEW: THE MAD FIXER VIDEO LOOP ENGINE ---
                 const nskalBanner = document.createElement('div');
                 nskalBanner.style.cssText = 'display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; padding-bottom: 20px; border-bottom: 1px solid var(--opuc-border);';
                 
@@ -43,7 +43,7 @@
                 const videoOverlay = document.createElement('video');
                 videoOverlay.src = 'https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.mp4';
                 videoOverlay.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.2s ease; pointer-events: none;';
-                videoOverlay.volume = 0.6; // Keep the audio from blowing out ears
+                videoOverlay.volume = 0.6; 
 
                 avatarContainer.appendChild(staticImg);
                 avatarContainer.appendChild(videoOverlay);
@@ -54,7 +54,7 @@
 
                 const versionText = document.createElement('div');
                 versionText.style.cssText = 'font-size: 13px; font-weight: bold; color: var(--opuc-text-muted); margin-top: 4px;';
-                versionText.innerText = 'Version 0.4.0';
+                versionText.innerText = 'Version 0.4.1'; // UPDATED
 
                 nskalBanner.appendChild(avatarContainer);
                 nskalBanner.appendChild(titleText);
@@ -72,7 +72,7 @@
                 };
 
                 const scheduleNext = () => {
-                    const delay = Math.floor(Math.random() * 4000) + 8000; // Random 8 to 12 seconds
+                    const delay = Math.floor(Math.random() * 4000) + 8000; 
                     this.nskalTimer = setTimeout(playNskal, delay);
                 };
 
@@ -81,9 +81,7 @@
                     scheduleNext();
                 });
 
-                // Start the first loop exactly 1 second after opening
                 this.nskalTimer = setTimeout(playNskal, 1000);
-                // ---------------------------------------------
 
                 const createHeader = (title) => {
                     const hdr = document.createElement('div');
@@ -158,7 +156,6 @@
                 modal.appendChild(container); document.body.appendChild(modal);
 
             } else {
-                // If modal already exists but was hidden, reset the video loop!
                 const videoOverlay = modal.querySelector('video');
                 if (videoOverlay) {
                     const playNskal = () => {
@@ -176,7 +173,6 @@
         },
 
         close: function() { 
-            // Cleanup memory timers and pause video
             if (this.nskalTimer) {
                 clearTimeout(this.nskalTimer);
                 this.nskalTimer = null;
@@ -184,7 +180,7 @@
             const modal = document.getElementById('opuc-settings-modal'); 
             if (modal) {
                 const vid = modal.querySelector('video');
-                if (vid) vid.pause(); // Stop audio immediately
+                if (vid) vid.pause(); 
                 modal.style.display = 'none'; 
             }
         },
