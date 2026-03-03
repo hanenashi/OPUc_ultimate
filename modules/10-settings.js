@@ -3,6 +3,8 @@
     'use strict';
 
     window.OPUcSettings = {
+        nskalTimer: null,
+
         open: function() {
             let modal = document.getElementById('opuc-settings-modal');
             if (!modal) {
@@ -27,14 +29,61 @@
                 const body = document.createElement('div');
                 body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
+                // --- NEW: THE MAD FIXER VIDEO LOOP ENGINE ---
                 const nskalBanner = document.createElement('div');
                 nskalBanner.style.cssText = 'display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; padding-bottom: 20px; border-bottom: 1px solid var(--opuc-border);';
-                nskalBanner.innerHTML = `
-                    <img src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png" style="width: 120px; height: 120px; border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,0.5); border: 2px solid var(--opuc-border);">
-                    <div style="margin-top: 15px; font-size: 22px; font-weight: bold; color: var(--opuc-text-main); letter-spacing: 1px;">OPUc <span style="color: var(--opuc-accent);">NSKAL</span></div>
-                    <div style="font-size: 13px; font-weight: bold; color: var(--opuc-text-muted); margin-top: 4px;">Version 0.3.9</div>
-                `;
+                
+                const avatarContainer = document.createElement('div');
+                avatarContainer.style.cssText = 'position: relative; width: 120px; height: 120px; border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,0.5); border: 2px solid var(--opuc-border); overflow: hidden;';
+
+                const staticImg = document.createElement('img');
+                staticImg.src = 'https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png';
+                staticImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
+
+                const videoOverlay = document.createElement('video');
+                videoOverlay.src = 'https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.mp4';
+                videoOverlay.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.2s ease; pointer-events: none;';
+                videoOverlay.volume = 0.6; // Keep the audio from blowing out ears
+
+                avatarContainer.appendChild(staticImg);
+                avatarContainer.appendChild(videoOverlay);
+
+                const titleText = document.createElement('div');
+                titleText.style.cssText = 'margin-top: 15px; font-size: 22px; font-weight: bold; color: var(--opuc-text-main); letter-spacing: 1px;';
+                titleText.innerHTML = `OPUc <span style="color: var(--opuc-accent);">NSKAL</span>`;
+
+                const versionText = document.createElement('div');
+                versionText.style.cssText = 'font-size: 13px; font-weight: bold; color: var(--opuc-text-muted); margin-top: 4px;';
+                versionText.innerText = 'Version 0.4.0';
+
+                nskalBanner.appendChild(avatarContainer);
+                nskalBanner.appendChild(titleText);
+                nskalBanner.appendChild(versionText);
                 body.appendChild(nskalBanner);
+
+                const playNskal = () => {
+                    videoOverlay.style.opacity = '1';
+                    videoOverlay.currentTime = 0;
+                    videoOverlay.play().catch(e => {
+                        console.warn("OPUc: Browser blocked video autoplay.", e);
+                        videoOverlay.style.opacity = '0';
+                        scheduleNext();
+                    });
+                };
+
+                const scheduleNext = () => {
+                    const delay = Math.floor(Math.random() * 4000) + 8000; // Random 8 to 12 seconds
+                    this.nskalTimer = setTimeout(playNskal, delay);
+                };
+
+                videoOverlay.addEventListener('ended', () => {
+                    videoOverlay.style.opacity = '0';
+                    scheduleNext();
+                });
+
+                // Start the first loop exactly 1 second after opening
+                this.nskalTimer = setTimeout(playNskal, 1000);
+                // ---------------------------------------------
 
                 const createHeader = (title) => {
                     const hdr = document.createElement('div');
@@ -71,7 +120,7 @@
                 };
 
                 body.appendChild(createHeader('🎨 Appearance'));
-                body.appendChild(createToggle('opuc_nskal_button', 'Replace Main Button with NSKAL Icon', false)); // NEW
+                body.appendChild(createToggle('opuc_nskal_button', 'Replace Main Button with NSKAL Icon', false)); 
                 body.appendChild(createSelect('opuc_theme', 'UI Theme', [{ value: 'classic', text: 'Okoun Classic (Light)' }, { value: 'dark', text: 'Night Mode (Dark)' }, { value: 'contrast', text: 'High Contrast (Hacker)' }, { value: 'retro', text: 'Retro 8-Bit' }], 'classic'));
                 body.appendChild(createSelect('opuc_ui_scale', 'Mobile UI Scale', [{ value: '0.8', text: '80% (Small)' }, { value: '1.0', text: '100% (Normal)' }, { value: '1.25', text: '125% (Large)' }, { value: '1.5', text: '150% (Extra Large)' }], '1.0'));
                 body.appendChild(createSelect('opuc_gallery_thumb_size', 'Gallery Thumbnail Size', [{ value: '80px', text: 'Small (80px)' }, { value: '100px', text: 'Medium (100px)' }, { value: '150px', text: 'Large (150px)' }, { value: '200px', text: 'X-Large (200px)' }], '100px'));
@@ -107,12 +156,38 @@
                 footer.appendChild(saveBtn);
                 container.appendChild(header); container.appendChild(body); container.appendChild(footer);
                 modal.appendChild(container); document.body.appendChild(modal);
+
+            } else {
+                // If modal already exists but was hidden, reset the video loop!
+                const videoOverlay = modal.querySelector('video');
+                if (videoOverlay) {
+                    const playNskal = () => {
+                        videoOverlay.style.opacity = '1';
+                        videoOverlay.currentTime = 0;
+                        videoOverlay.play().catch(e => { videoOverlay.style.opacity = '0'; });
+                    };
+                    clearTimeout(this.nskalTimer);
+                    this.nskalTimer = setTimeout(playNskal, 1000);
+                }
             }
+            
             modal.style.display = 'flex';
             modal.focus();
         },
 
-        close: function() { const modal = document.getElementById('opuc-settings-modal'); if (modal) modal.style.display = 'none'; },
+        close: function() { 
+            // Cleanup memory timers and pause video
+            if (this.nskalTimer) {
+                clearTimeout(this.nskalTimer);
+                this.nskalTimer = null;
+            }
+            const modal = document.getElementById('opuc-settings-modal'); 
+            if (modal) {
+                const vid = modal.querySelector('video');
+                if (vid) vid.pause(); // Stop audio immediately
+                modal.style.display = 'none'; 
+            }
+        },
 
         saveAndClose: function() {
             window.OPUcConfig.set('opuc_theme', document.getElementById('opuc_theme').value);
@@ -124,7 +199,7 @@
             window.OPUcConfig.set('opuc_intercept_drop', document.getElementById('opuc_intercept_drop').checked);
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
-            window.OPUcConfig.set('opuc_nskal_button', document.getElementById('opuc_nskal_button').checked); // NEW
+            window.OPUcConfig.set('opuc_nskal_button', document.getElementById('opuc_nskal_button').checked); 
             window.OPUcConfig.set('opuc_auto_resize', document.getElementById('opuc_auto_resize').value);
             window.OPUcConfig.set('opuc_image_width', document.getElementById('opuc_image_width').value); 
             window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
@@ -136,8 +211,6 @@
             if (window.OPUcUI && typeof window.OPUcUI.toggleStagingAll === 'function') window.OPUcUI.toggleStagingAll(document.getElementById('opuc_staging_enabled').checked);
             if (window.OPUcTheme) window.OPUcTheme.refresh();
             
-            // To apply the NSKAL button change properly without forcing a full script injection lifecycle
-            alert('Settings Saved! Please refresh the page if you changed the NSKAL Button setting.');
             this.close();
         }
     };
