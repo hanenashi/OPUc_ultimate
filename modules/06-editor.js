@@ -4,8 +4,7 @@
 
     const formatBytes = (bytes) => {
         if (!bytes || bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const k = 1024; const sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     };
@@ -54,7 +53,7 @@
             container.dataset.index = index;
             container.draggable = true; 
             
-            container.style.cssText = `width: 120px; display: flex; flex-direction: column; border: 1px solid var(--opuc-border); border-radius: 4px; overflow: hidden; background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab; user-select: none;`;
+            container.style.cssText = `width: 120px; display: flex; flex-direction: column; border: 1px solid var(--opuc-border); border-radius: 4px; overflow: hidden; background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab; user-select: none; position: relative;`;
 
             container.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', index); setTimeout(() => container.style.opacity = '0.4', 0); });
             container.addEventListener('dragend', () => { container.style.opacity = '1'; document.querySelectorAll('.opuc-stage-tile').forEach(el => el.classList.remove('opuc-drag-left', 'opuc-drag-right')); });
@@ -100,6 +99,17 @@
             editBtn.style.cssText = `position: absolute; top: 4px; right: 4px; background: ${hasCaption ? 'rgba(76, 175, 80, 0.95)' : 'rgba(255, 152, 0, 0.9)'}; color: ${hasCaption ? '#fff' : '#000'}; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
             editBtn.onclick = (e) => { e.preventDefault(); this.openCaptionModal(index); };
             topHalf.appendChild(editBtn);
+
+            // NEW: CROP BUBBLE
+            const cropBtn = document.createElement('button');
+            cropBtn.innerHTML = '✂️';
+            cropBtn.title = 'Crop & Resize Image';
+            cropBtn.style.cssText = `position: absolute; bottom: 4px; right: 4px; background: rgba(33, 150, 243, 0.9); color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
+            cropBtn.onclick = (e) => { 
+                e.preventDefault(); 
+                if (window.OPUcImageProcessor) window.OPUcImageProcessor.open(index); 
+            };
+            topHalf.appendChild(cropBtn);
 
             container.appendChild(topHalf);
 
@@ -287,7 +297,6 @@
             });
         },
 
-        // REBUILT: Custom Theme-Aware Preview Modal
         showPreviewModal: function(controlsElement) {
             let currentBodyType = 'html';
             const parentForm = controlsElement.closest('.post.content') || document.getElementById('article-form-main');
@@ -344,7 +353,6 @@
             okBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
             okBtn.onclick = () => modal.remove();
 
-            // Keyboard bindings
             modal.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' || e.key === 'Enter') {
                     e.preventDefault(); modal.remove();
