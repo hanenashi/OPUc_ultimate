@@ -34,6 +34,48 @@
             reader.readAsDataURL(file);
         },
 
+        // NEW: Background Client-Side Resize Engine
+        applyAutoResize: function(file, resizeStr) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        if (resizeStr.endsWith('%')) {
+                            const p = parseInt(resizeStr);
+                            if (!isNaN(p) && p > 0) { w = Math.round(w * (p/100)); h = Math.round(h * (p/100)); }
+                        } else if (resizeStr.includes('x')) {
+                            const parts = resizeStr.toLowerCase().split('x');
+                            const tw = parseInt(parts[0]), th = parseInt(parts[1]);
+                            if (tw && !th) { w = tw; h = Math.round(img.height * (tw / img.width)); }
+                            else if (!tw && th) { h = th; w = Math.round(img.width * (th / img.height)); }
+                            else if (tw && th) { w = tw; h = th; }
+                        }
+                        
+                        if (w === img.width && h === img.height) { resolve(file); return; }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, w, h);
+                        
+                        canvas.toBlob((blob) => {
+                            const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
+                            const finalExt = (ext === 'png') ? 'png' : 'jpeg';
+                            const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + `_auto.${finalExt}`, { type: `image/${finalExt}` });
+                            newFile.opucCaption = file.opucCaption;
+                            newFile.opucStyleOverride = file.opucStyleOverride;
+                            resolve(newFile);
+                        }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        },
+
         renderAllStagedItems: function() {
             this.queue = this.queue.filter(f => f !== null);
             const allStagingContainers = document.querySelectorAll('.opuc-staging-items');
@@ -101,7 +143,6 @@
             const editBtn = document.createElement('button');
             editBtn.innerHTML = hasCaption ? '💬' : '✏️';
             editBtn.title = hasCaption ? (file.opucCaption || 'Custom Style Active') : 'Add Caption / Style Override';
-            // FIXED: Yellow-Green pencil
             editBtn.style.cssText = `position: absolute; top: 4px; right: 4px; background: ${hasCaption ? 'rgba(76, 175, 80, 0.95)' : 'rgba(217, 226, 100, 0.95)'}; color: #000; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
             editBtn.onclick = (e) => { e.preventDefault(); this.openCaptionModal(index); };
             topHalf.appendChild(editBtn);
@@ -109,7 +150,6 @@
             const cropBtn = document.createElement('button');
             cropBtn.innerHTML = '✂️';
             cropBtn.title = 'Crop & Resize Image';
-            // FIXED: Darker blue scissors
             cropBtn.style.cssText = `position: absolute; bottom: 4px; right: 4px; background: rgba(33, 84, 243, 0.9); color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
             cropBtn.onclick = (e) => { e.preventDefault(); if (window.OPUcImageProcessor) window.OPUcImageProcessor.open(index); };
             topHalf.appendChild(cropBtn);
@@ -143,6 +183,28 @@
 
             this.createThumbnail(file, (thumbData, w, h) => {
                 imgPreview.src = thumbData; imgPreview.style.opacity = '1'; resSpan.innerText = `${w}x${h}`;
+
+                // FIXED: Deep green auto-resize visual indicator
+                const glob = window.OPUcConfig.settings.autoResize;
+                if (glob && glob !== '100%' && !file.opucOriginalFile) {
+                    let outW = w, outH = h;
+                    if (glob.endsWith('%')) {
+                        const p = parseInt(glob);
+                        if (!isNaN(p) && p > 0) { outW = Math.round(w * (p/100)); outH = Math.round(h * (p/100)); }
+                    } else if (glob.includes('x')) {
+                        const parts = glob.toLowerCase().split('x');
+                        const tw = parseInt(parts[0]), th = parseInt(parts[1]);
+                        if (tw && !th) { outW = tw; outH = Math.round(h * (tw / w)); }
+                        else if (!tw && th) { outH = th; outW = Math.round(w * (th / h)); }
+                        else if (tw && th) { outW = tw; outH = th; }
+                    }
+                    if (outW !== w || outH !== h) {
+                        const autoResSpan = document.createElement('div');
+                        autoResSpan.style.cssText = 'font-size: 9px; color: #4CAF50; font-weight: bold; text-align: right; margin-top: 1px;';
+                        autoResSpan.innerText = `➔ ${outW}x${outH} (auto)`;
+                        bottomHalf.appendChild(autoResSpan);
+                    }
+                }
             });
             return container;
         },
@@ -156,7 +218,6 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-caption-modal';
-            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
             const container = document.createElement('div');
@@ -220,7 +281,6 @@
             saveBtn.innerText = 'Save';
             saveBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
 
-            // FIXED: Capture Phase Keydown true
             const keyHandler = (e) => {
                 if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cleanup(); } 
                 else if (e.key === 'Enter') {
@@ -317,7 +377,6 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-preview-modal';
-            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
             const container = document.createElement('div');
@@ -359,8 +418,6 @@
             closeBtn.onclick = cleanup; okBtn.onclick = cleanup;
             footer.appendChild(okBtn); container.appendChild(header); container.appendChild(body); container.appendChild(footer);
             modal.appendChild(container); document.body.appendChild(modal);
-
-            modal.focus();
         },
 
         flushQueue: async function(itemsToUpload) {
@@ -371,6 +428,8 @@
                 btn.style.setProperty('color', '#fff', 'important');
             });
 
+            const glob = window.OPUcConfig.settings.autoResize;
+
             for (let i = 0; i < this.queue.length; i++) {
                 if (!this.isUploading) break; 
                 const file = this.queue[i];
@@ -378,7 +437,14 @@
                     try {
                         const metadata = { caption: file.opucCaption || '', styleOverride: file.opucStyleOverride || '' };
                         const isLastItem = (completed === itemsToUpload - 1);
-                        await window.OPUcAPI.upload(file, metadata, isLastItem); 
+                        
+                        // FIXED: The Holy Grail Background Resizer
+                        let fileToUpload = file;
+                        if (glob && glob !== '100%' && !file.opucOriginalFile) {
+                            fileToUpload = await this.applyAutoResize(file, glob);
+                        }
+
+                        await window.OPUcAPI.upload(fileToUpload, metadata, isLastItem); 
                         
                         document.querySelectorAll(`.opuc-stage-tile[data-index="${i}"]`).forEach(t => t.style.opacity = '0.3');
                         this.queue[i] = null; completed++;
@@ -395,11 +461,17 @@
         directUploadBatch: async function(filesArray) {
             this.isUploading = true; let completed = 0; const total = filesArray.length;
             window.OPUcUI.setWorkingState(() => { this.isUploading = false; });
+            const glob = window.OPUcConfig.settings.autoResize;
+            
             for (let i=0; i<filesArray.length; i++) {
                 if (!this.isUploading) break;
                 try {
                     const isLastItem = (i === filesArray.length - 1);
-                    await window.OPUcAPI.upload(filesArray[i], {}, isLastItem); 
+                    let fileToUpload = filesArray[i];
+                    if (glob && glob !== '100%' && !fileToUpload.opucOriginalFile) {
+                        fileToUpload = await this.applyAutoResize(fileToUpload, glob);
+                    }
+                    await window.OPUcAPI.upload(fileToUpload, {}, isLastItem); 
                     completed++; window.OPUcUI.updateProgress(completed, total);
                 } catch (err) { console.error("OPUc Direct Upload Error:", err); }
             }

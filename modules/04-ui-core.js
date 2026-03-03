@@ -30,11 +30,9 @@
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     document.querySelectorAll('.opuc-context-menu').forEach(m => m.style.display = 'none');
-                    if (window.OPUcGallery && typeof window.OPUcGallery.close === 'function') {
-                        window.OPUcGallery.close();
-                    }
+                    if (window.OPUcGallery && typeof window.OPUcGallery.close === 'function') window.OPUcGallery.close();
                 }
-            }, true); // Capture phase priority
+            }, true);
         },
 
         buildUIForForm: function(container, textArea) {
@@ -115,7 +113,6 @@
                     toggleBtn.innerHTML = isEnabled ? '⏸️ <span style="margin-left: 8px;">Disable Staging</span>' : '▶️ <span style="margin-left: 8px;">Enable Staging</span>';
                 }
 
-                // NEW: Dynamically update the Quick Resize string on open
                 const resizeBtn = menu.querySelector('#opuc-menu-resize');
                 if (resizeBtn) {
                     resizeBtn.innerHTML = `↔️ <span style="margin-left: 8px;">Resize (${window.OPUcConfig.settings.autoResize})</span>`;
@@ -136,6 +133,54 @@
             }
         },
 
+        // FIXED: Custom non-blocking modal to replace prompt()
+        showQuickResizeModal: function(currentValue) {
+            let modal = document.createElement('div');
+            modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483650; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);`;
+            
+            const box = document.createElement('div');
+            box.style.cssText = `background: var(--opuc-bg-secondary); padding: 20px; border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; gap: 10px; font-family: var(--opuc-font); color: var(--opuc-text-main);`;
+            
+            box.innerHTML = `<b>Global Resize Override</b><div style="font-size: 12px; color: var(--opuc-text-muted);">Formats: 800x, x600, 800x600, 50%, 100%</div>`;
+            
+            const input = document.createElement('input');
+            input.value = currentValue;
+            input.style.cssText = `padding: 8px; background: var(--opuc-bg-primary); border: 1px solid var(--opuc-border); color: var(--opuc-text-main); border-radius: 4px; outline: none; font-family: monospace;`;
+            box.appendChild(input);
+            
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = `display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;`;
+            
+            const cancel = document.createElement('button');
+            cancel.innerText = 'Cancel';
+            cancel.style.cssText = `padding: 6px 12px; border-radius: 4px; border: 1px solid var(--opuc-border); background: transparent; color: var(--opuc-text-main); cursor: pointer;`;
+            
+            const save = document.createElement('button');
+            save.innerText = 'Save';
+            save.style.cssText = `padding: 6px 12px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;`;
+            
+            const cleanup = () => { document.removeEventListener('keydown', keyH, true); modal.remove(); };
+            const doSave = () => { 
+                window.OPUcConfig.set('opuc_auto_resize', input.value.trim()); 
+                cleanup(); 
+                if (window.OPUcEditor) window.OPUcEditor.renderAllStagedItems();
+            };
+            
+            cancel.onclick = cleanup; save.onclick = doSave;
+            
+            const keyH = (e) => {
+                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cleanup(); }
+                if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); doSave(); }
+            };
+            document.addEventListener('keydown', keyH, true);
+            
+            btnRow.appendChild(cancel); btnRow.appendChild(save);
+            box.appendChild(btnRow); modal.appendChild(box);
+            document.body.appendChild(modal);
+            input.focus();
+            input.select();
+        },
+
         buildContextMenu: function(isLoggedIn, textArea) {
             const menu = document.createElement('div');
             menu.className = 'opuc-context-menu opuc-scalable opuc-origin-tr';
@@ -143,8 +188,7 @@
 
             const createItem = (id, html, onClick, isDisabled = false) => {
                 const item = document.createElement('div');
-                item.id = id;
-                item.innerHTML = html;
+                item.id = id; item.innerHTML = html;
                 item.style.cssText = `padding: 10px 15px; cursor: pointer; color: var(--opuc-text-main); font-size: 14px; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05);`;
                 if (isDisabled) {
                     item.style.opacity = '0.4'; item.style.cursor = 'not-allowed';
@@ -162,13 +206,9 @@
             }));
             menu.appendChild(createItem('opuc-menu-gallery', '🖼️ <span style="margin-left: 8px;">Gallery</span>', () => { if (window.OPUcGallery) window.OPUcGallery.open(); }, !isLoggedIn));
             
-            // NEW: Quick Resize Setter
             menu.appendChild(createItem('opuc-menu-resize', '↔️ <span style="margin-left: 8px;">Resize</span>', () => {
                 const current = window.OPUcConfig.settings.autoResize;
-                const res = prompt("Global Resize Override\nFormats: 800x, x600, 800x600, 50%, 100%", current);
-                if (res !== null && res.trim() !== '') {
-                    window.OPUcConfig.set('opuc_auto_resize', res.trim());
-                }
+                this.showQuickResizeModal(current);
             }));
 
             menu.appendChild(createItem('opuc-menu-toggle', '⏸️ <span style="margin-left: 8px;">Toggle Staging</span>', () => {
