@@ -13,11 +13,11 @@
 
                 const container = document.createElement('div');
                 container.className = 'opuc-scalable'; 
-                container.style.cssText = `width: 90%; max-width: 500px; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font); max-height: 90vh;`;
+                container.style.cssText = `width: 90%; max-width: 500px; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); color: var(--opuc-text-main); font-family: var(--opuc-font); max-height: 90vh;`;
 
                 const header = document.createElement('div');
                 header.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;';
-                header.innerHTML = '<b style="font-size: 18px;">⚙️ OPUc Settings</b>';
+                header.innerHTML = '<b style="font-size: 18px;">Settings</b>';
                 const closeBtn = document.createElement('button');
                 closeBtn.innerHTML = '✖';
                 closeBtn.style.cssText = 'background: none; border: none; color: var(--opuc-text-main); font-size: 20px; cursor: pointer;';
@@ -26,6 +26,16 @@
 
                 const body = document.createElement('div');
                 body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
+
+                // FIXED: The NSKAL Hero Banner
+                const nskalBanner = document.createElement('div');
+                nskalBanner.style.cssText = 'display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; padding-bottom: 20px; border-bottom: 1px solid var(--opuc-border);';
+                nskalBanner.innerHTML = `
+                    <img src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png" style="width: 120px; height: 120px; border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,0.5); border: 2px solid var(--opuc-border);">
+                    <div style="margin-top: 15px; font-size: 22px; font-weight: bold; color: var(--opuc-text-main); letter-spacing: 1px;">OPUc <span style="color: var(--opuc-accent);">NSKAL</span></div>
+                    <div style="font-size: 13px; color: var(--opuc-text-muted); font-style: italic; margin-top: 4px;">The Mad Fixer Edition</div>
+                `;
+                body.appendChild(nskalBanner);
 
                 const createHeader = (title) => {
                     const hdr = document.createElement('div');
@@ -75,20 +85,10 @@
                 
                 body.appendChild(createHeader('📝 Captions & Formatting'));
                 body.appendChild(createInput('opuc_auto_resize', 'Global Auto-Resize (Physical pixels)', '100%', '<small style="color:var(--opuc-text-muted);">(e.g. 800x, x600, 800x600, 50%)</small>'));
-                
-                // NEW: Global Width Attribute
                 body.appendChild(createInput('opuc_image_width', 'Inject HTML width="..." attribute', '', '<small style="color:var(--opuc-text-muted);">(e.g. 500, 100%, leave empty for none)</small>'));
-
                 body.appendChild(createSelect('opuc_format', 'Format (Syntax)', [{ value: 'auto', text: 'Auto-detect from Form' }, { value: 'plain', text: 'Text (Plain)' }, { value: 'html', text: 'HTML' }, { value: 'radeox', text: 'Radeox' }, { value: 'markdown', text: 'Markdown' }], 'auto'));
                 body.appendChild(createSelect('opuc_style', 'Style (Tag Type)', [{ value: 'url', text: 'Pure URL' }, { value: 'image', text: 'Image' }, { value: 'link', text: 'Link' }, { value: 'thumb', text: 'Linked Thumbnail' }], 'image'));
-                
-                // FIXED: Added "Inside Image (Title)"
-                body.appendChild(createSelect('opuc_caption_position', 'Caption Position', [
-                    { value: 'below', text: 'Below Image' }, 
-                    { value: 'above', text: 'Above Image' },
-                    { value: 'title', text: 'Inside Image (Title/Alt Attribute)' }
-                ], 'below'));
-
+                body.appendChild(createSelect('opuc_caption_position', 'Caption Position', [{ value: 'below', text: 'Below Image' }, { value: 'above', text: 'Above Image' }, { value: 'title', text: 'Inside Image (Title/Alt Attribute)' }], 'below'));
                 body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing', [{ value: 'single', text: 'Single Break' }, { value: 'double', text: 'Double Break' }, { value: 'space', text: 'Inline Space' }, { value: 'none', text: 'None' }], 'double'));
                 body.appendChild(createSelect('opuc_between_spacing', 'Spacing BETWEEN uploads', [{ value: 'single', text: 'Single Break' }, { value: 'double', text: 'Double Break' }, { value: 'space', text: 'Inline Space' }, { value: 'none', text: 'None' }], 'double'));
 
@@ -125,7 +125,7 @@
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
             window.OPUcConfig.set('opuc_auto_resize', document.getElementById('opuc_auto_resize').value);
-            window.OPUcConfig.set('opuc_image_width', document.getElementById('opuc_image_width').value); // NEW
+            window.OPUcConfig.set('opuc_image_width', document.getElementById('opuc_image_width').value); 
             window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
             window.OPUcConfig.set('opuc_style', document.getElementById('opuc_style').value);
             window.OPUcConfig.set('opuc_caption_position', document.getElementById('opuc_caption_position').value);

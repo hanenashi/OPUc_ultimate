@@ -133,7 +133,6 @@
             }
         },
 
-        // FIXED: Custom non-blocking modal to replace prompt()
         showQuickResizeModal: function(currentValue) {
             let modal = document.createElement('div');
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483650; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);`;
@@ -217,7 +216,9 @@
                 this.toggleStagingAll(!current);
             }));
 
-            menu.appendChild(createItem('opuc-menu-settings', '⚙️ <span style="margin-left: 8px;">Settings</span>', () => { if (window.OPUcSettings) window.OPUcSettings.open(); }));
+            // FIXED: Replaced Gear with 32px NSKAL Icon
+            menu.appendChild(createItem('opuc-menu-settings', '<img src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png" style="width: 32px; height: 32px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.5);"> <span style="margin-left: 10px; font-weight: bold; color: var(--opuc-accent);">NSKAL Settings</span>', () => { if (window.OPUcSettings) window.OPUcSettings.open(); }));
+            
             return menu;
         },
 
