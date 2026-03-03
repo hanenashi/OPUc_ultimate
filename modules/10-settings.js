@@ -27,13 +27,12 @@
                 const body = document.createElement('div');
                 body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
-                // FIXED: Version number replaces Mad Fixer text
                 const nskalBanner = document.createElement('div');
                 nskalBanner.style.cssText = 'display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; padding-bottom: 20px; border-bottom: 1px solid var(--opuc-border);';
                 nskalBanner.innerHTML = `
                     <img src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png" style="width: 120px; height: 120px; border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,0.5); border: 2px solid var(--opuc-border);">
                     <div style="margin-top: 15px; font-size: 22px; font-weight: bold; color: var(--opuc-text-main); letter-spacing: 1px;">OPUc <span style="color: var(--opuc-accent);">NSKAL</span></div>
-                    <div style="font-size: 13px; font-weight: bold; color: var(--opuc-text-muted); margin-top: 4px;">Version 0.3.8</div>
+                    <div style="font-size: 13px; font-weight: bold; color: var(--opuc-text-muted); margin-top: 4px;">Version 0.3.9</div>
                 `;
                 body.appendChild(nskalBanner);
 
@@ -72,6 +71,7 @@
                 };
 
                 body.appendChild(createHeader('🎨 Appearance'));
+                body.appendChild(createToggle('opuc_nskal_button', 'Replace Main Button with NSKAL Icon', false)); // NEW
                 body.appendChild(createSelect('opuc_theme', 'UI Theme', [{ value: 'classic', text: 'Okoun Classic (Light)' }, { value: 'dark', text: 'Night Mode (Dark)' }, { value: 'contrast', text: 'High Contrast (Hacker)' }, { value: 'retro', text: 'Retro 8-Bit' }], 'classic'));
                 body.appendChild(createSelect('opuc_ui_scale', 'Mobile UI Scale', [{ value: '0.8', text: '80% (Small)' }, { value: '1.0', text: '100% (Normal)' }, { value: '1.25', text: '125% (Large)' }, { value: '1.5', text: '150% (Extra Large)' }], '1.0'));
                 body.appendChild(createSelect('opuc_gallery_thumb_size', 'Gallery Thumbnail Size', [{ value: '80px', text: 'Small (80px)' }, { value: '100px', text: 'Medium (100px)' }, { value: '150px', text: 'Large (150px)' }, { value: '200px', text: 'X-Large (200px)' }], '100px'));
@@ -124,6 +124,7 @@
             window.OPUcConfig.set('opuc_intercept_drop', document.getElementById('opuc_intercept_drop').checked);
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
+            window.OPUcConfig.set('opuc_nskal_button', document.getElementById('opuc_nskal_button').checked); // NEW
             window.OPUcConfig.set('opuc_auto_resize', document.getElementById('opuc_auto_resize').value);
             window.OPUcConfig.set('opuc_image_width', document.getElementById('opuc_image_width').value); 
             window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
@@ -134,6 +135,9 @@
 
             if (window.OPUcUI && typeof window.OPUcUI.toggleStagingAll === 'function') window.OPUcUI.toggleStagingAll(document.getElementById('opuc_staging_enabled').checked);
             if (window.OPUcTheme) window.OPUcTheme.refresh();
+            
+            // To apply the NSKAL button change properly without forcing a full script injection lifecycle
+            alert('Settings Saved! Please refresh the page if you changed the NSKAL Button setting.');
             this.close();
         }
     };

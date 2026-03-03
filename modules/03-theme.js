@@ -44,6 +44,20 @@
                 .opuc-drag-active { border: 2px dashed var(--opuc-accent) !important; background-color: rgba(255, 152, 0, 0.1) !important; }
                 .opuc-scalable { transform: scale(var(--opuc-scale)); }
                 .opuc-origin-tr { transform-origin: top right !important; }
+
+                /* NEW: NSKAL Button Styles */
+                .opuc-nskal-btn {
+                    background: transparent; border: none; padding: 0; margin-left: 8px; cursor: pointer;
+                    display: inline-flex; align-items: center; justify-content: center; outline: none;
+                    border-radius: 6px; transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .opuc-nskal-btn:active {
+                    transform: scale(0.85); /* The Squish */
+                }
+                .opuc-nskal-img {
+                    width: 30px; height: 30px; border-radius: 6px; pointer-events: none; display: block;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.4); border: 1px solid var(--opuc-border);
+                }
             `;
         },
 

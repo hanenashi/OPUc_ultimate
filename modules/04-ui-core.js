@@ -57,23 +57,31 @@
             stagingArea.appendChild(stagingControls);
             textArea.parentNode.insertBefore(stagingArea, textArea);
 
+            // FIXED: Render Main Button depending on NSKAL Setting
+            const isNskal = window.OPUcConfig.settings.nskalButton;
             const outerSpan = document.createElement('span');
-            outerSpan.className = 'yui-button default'; 
-            outerSpan.style.position = 'relative'; 
-
             const innerSpan = document.createElement('span');
-            innerSpan.className = 'first-child';
-
             const opucBtn = document.createElement('button');
             opucBtn.className = 'opuc-main-btn'; 
             opucBtn.type = 'button';
-            opucBtn.innerHTML = 'OPUc';
             opucBtn.title = 'Left Click: Add File | Right Click: Menu';
-            opucBtn.style.cssText = 'user-select: none; touch-action: manipulation; transition: background-image 0.2s linear;'; 
-            
-            innerSpan.appendChild(opucBtn);
-            outerSpan.appendChild(innerSpan);
-            toolsRow.appendChild(outerSpan);
+
+            if (isNskal) {
+                outerSpan.style.cssText = 'position: relative; display: inline-block; vertical-align: middle; margin-left: 5px;';
+                opucBtn.classList.add('opuc-nskal-btn');
+                opucBtn.innerHTML = '<img class="opuc-nskal-img" src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png">';
+                outerSpan.appendChild(opucBtn);
+                toolsRow.appendChild(outerSpan);
+            } else {
+                outerSpan.className = 'yui-button default'; 
+                outerSpan.style.position = 'relative'; 
+                innerSpan.className = 'first-child';
+                opucBtn.innerHTML = 'OPUc';
+                opucBtn.style.cssText = 'user-select: none; touch-action: manipulation; transition: background-image 0.2s linear;'; 
+                innerSpan.appendChild(opucBtn);
+                outerSpan.appendChild(innerSpan);
+                toolsRow.appendChild(outerSpan);
+            }
 
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
@@ -107,7 +115,6 @@
                 if (this.isWorking) return; 
                 document.querySelectorAll('.opuc-context-menu').forEach(m => { if (m !== menu) m.style.display = 'none'; });
                 
-                // Dynamically sync Custom Toggle UI
                 const textEl = menu.querySelector('#opuc-menu-toggle-text');
                 const switchEl = menu.querySelector('#opuc-menu-toggle-switch');
                 const dotEl = menu.querySelector('#opuc-menu-toggle-dot');
@@ -118,7 +125,6 @@
                     dotEl.style.transform = isEnabled ? 'translateX(14px)' : 'translateX(0)';
                 }
 
-                // Dynamically sync Inline Resize Input
                 const resizeInput = menu.querySelector('#opuc-menu-resize-input');
                 if (resizeInput) {
                     resizeInput.value = window.OPUcConfig.settings.autoResize;
@@ -164,7 +170,6 @@
             }));
             menu.appendChild(createItem('opuc-menu-gallery', '🖼️ <span style="margin-left: 8px;">Gallery</span>', () => { if (window.OPUcGallery) window.OPUcGallery.open(); }, !isLoggedIn));
             
-            // FIXED: Inline Text Input for Global Resize
             const resizeRow = document.createElement('div');
             resizeRow.style.cssText = `padding: 10px 15px; color: var(--opuc-text-main); font-size: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.05);`;
             resizeRow.innerHTML = `
@@ -186,7 +191,6 @@
             });
             menu.appendChild(resizeRow);
 
-            // FIXED: Custom CSS Switch Toggle for Staging
             const toggleRow = document.createElement('div');
             toggleRow.style.cssText = `padding: 10px 15px; cursor: pointer; color: var(--opuc-text-main); font-size: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.05);`;
             
@@ -204,7 +208,7 @@
             toggleRow.onmouseover = () => toggleRow.style.background = 'rgba(255, 152, 0, 0.2)';
             toggleRow.onmouseout = () => toggleRow.style.background = 'transparent';
             toggleRow.onclick = (e) => {
-                e.preventDefault(); e.stopPropagation(); // Don't close the menu
+                e.preventDefault(); e.stopPropagation(); 
                 const current = window.OPUcConfig.settings.stagingEnabled;
                 const newVal = !current;
                 window.OPUcConfig.set('opuc_staging_enabled', newVal);
@@ -221,7 +225,6 @@
             };
             menu.appendChild(toggleRow);
 
-            // FIXED: Standard uniform font style for Settings row
             menu.appendChild(createItem('opuc-menu-settings', '<img src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png" style="width: 32px; height: 32px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.5);"> <span style="margin-left: 10px;">Settings</span>', () => { if (window.OPUcSettings) window.OPUcSettings.open(); }));
             
             return menu;
@@ -229,11 +232,12 @@
 
         setWorkingState: function(cancelCb) {
             this.isWorking = true; this.cancelCallback = cancelCb;
+            const isNskal = window.OPUcConfig.settings.nskalButton;
             document.querySelectorAll('.opuc-main-btn').forEach(btn => {
-                btn.innerHTML = '✖ Cancel';
+                btn.innerHTML = isNskal ? '<b style="font-size:18px; color:var(--opuc-danger);">✖</b>' : '✖ Cancel';
                 btn.style.setProperty('background-image', 'linear-gradient(90deg, #F44336 0%, #aaa 0%)', 'important');
                 btn.style.setProperty('color', '#fff', 'important');
-                btn.style.setProperty('text-shadow', '1px 1px 1px rgba(0,0,0,0.5)', 'important');
+                if (!isNskal) btn.style.setProperty('text-shadow', '1px 1px 1px rgba(0,0,0,0.5)', 'important');
             });
         },
         updateProgress: function(completed, total) {
@@ -246,8 +250,9 @@
         },
         resetButtonState: function() {
             this.isWorking = false; this.cancelCallback = null;
+            const isNskal = window.OPUcConfig.settings.nskalButton;
             document.querySelectorAll('.opuc-main-btn').forEach(btn => {
-                btn.innerHTML = 'OPUc';
+                btn.innerHTML = isNskal ? '<img class="opuc-nskal-img" src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png">' : 'OPUc';
                 btn.style.removeProperty('background-image');
                 btn.style.removeProperty('color');
                 btn.style.removeProperty('text-shadow');

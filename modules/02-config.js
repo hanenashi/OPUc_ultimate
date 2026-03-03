@@ -34,12 +34,13 @@
             get format() { return window.OPUcConfig.get('opuc_format', 'auto'); },
             get style() { return window.OPUcConfig.get('opuc_style', 'image'); },
             
-            // NEW: Width Attribute
             get imageWidth() { return window.OPUcConfig.get('opuc_image_width', ''); },
-
             get captionPosition() { return window.OPUcConfig.get('opuc_caption_position', 'below'); },
             get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'double'); },
-            get betweenSpacing() { return window.OPUcConfig.get('opuc_between_spacing', 'double'); }
+            get betweenSpacing() { return window.OPUcConfig.get('opuc_between_spacing', 'double'); },
+
+            // NEW: The Mad Fixer Button Override
+            get nskalButton() { return window.OPUcConfig.get('opuc_nskal_button', false); }
         },
 
         state: { isLoggedIn: true, activeTextArea: null },
