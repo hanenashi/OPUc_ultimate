@@ -27,13 +27,13 @@
                 const body = document.createElement('div');
                 body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
-                // FIXED: The NSKAL Hero Banner
+                // FIXED: Version number replaces Mad Fixer text
                 const nskalBanner = document.createElement('div');
                 nskalBanner.style.cssText = 'display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; padding-bottom: 20px; border-bottom: 1px solid var(--opuc-border);';
                 nskalBanner.innerHTML = `
                     <img src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png" style="width: 120px; height: 120px; border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,0.5); border: 2px solid var(--opuc-border);">
                     <div style="margin-top: 15px; font-size: 22px; font-weight: bold; color: var(--opuc-text-main); letter-spacing: 1px;">OPUc <span style="color: var(--opuc-accent);">NSKAL</span></div>
-                    <div style="font-size: 13px; color: var(--opuc-text-muted); font-style: italic; margin-top: 4px;">The Mad Fixer Edition</div>
+                    <div style="font-size: 13px; font-weight: bold; color: var(--opuc-text-muted); margin-top: 4px;">Version 0.3.8</div>
                 `;
                 body.appendChild(nskalBanner);
 

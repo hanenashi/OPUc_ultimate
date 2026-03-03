@@ -107,15 +107,21 @@
                 if (this.isWorking) return; 
                 document.querySelectorAll('.opuc-context-menu').forEach(m => { if (m !== menu) m.style.display = 'none'; });
                 
-                const toggleBtn = menu.querySelector('#opuc-menu-toggle');
-                if (toggleBtn) {
+                // Dynamically sync Custom Toggle UI
+                const textEl = menu.querySelector('#opuc-menu-toggle-text');
+                const switchEl = menu.querySelector('#opuc-menu-toggle-switch');
+                const dotEl = menu.querySelector('#opuc-menu-toggle-dot');
+                if (textEl && switchEl && dotEl) {
                     const isEnabled = window.OPUcConfig.settings.stagingEnabled;
-                    toggleBtn.innerHTML = isEnabled ? '⏸️ <span style="margin-left: 8px;">Disable Staging</span>' : '▶️ <span style="margin-left: 8px;">Enable Staging</span>';
+                    textEl.innerText = `Staging ${isEnabled ? 'ON' : 'OFF'}`;
+                    switchEl.style.background = isEnabled ? 'var(--opuc-accent)' : 'var(--opuc-bg-primary)';
+                    dotEl.style.transform = isEnabled ? 'translateX(14px)' : 'translateX(0)';
                 }
 
-                const resizeBtn = menu.querySelector('#opuc-menu-resize');
-                if (resizeBtn) {
-                    resizeBtn.innerHTML = `↔️ <span style="margin-left: 8px;">Resize (${window.OPUcConfig.settings.autoResize})</span>`;
+                // Dynamically sync Inline Resize Input
+                const resizeInput = menu.querySelector('#opuc-menu-resize-input');
+                if (resizeInput) {
+                    resizeInput.value = window.OPUcConfig.settings.autoResize;
                 }
 
                 menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
@@ -131,53 +137,6 @@
                 stagingArea.classList.add('active');
                 if(window.OPUcEditor.renderAllStagedItems) window.OPUcEditor.renderAllStagedItems();
             }
-        },
-
-        showQuickResizeModal: function(currentValue) {
-            let modal = document.createElement('div');
-            modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483650; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);`;
-            
-            const box = document.createElement('div');
-            box.style.cssText = `background: var(--opuc-bg-secondary); padding: 20px; border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; gap: 10px; font-family: var(--opuc-font); color: var(--opuc-text-main);`;
-            
-            box.innerHTML = `<b>Global Resize Override</b><div style="font-size: 12px; color: var(--opuc-text-muted);">Formats: 800x, x600, 800x600, 50%, 100%</div>`;
-            
-            const input = document.createElement('input');
-            input.value = currentValue;
-            input.style.cssText = `padding: 8px; background: var(--opuc-bg-primary); border: 1px solid var(--opuc-border); color: var(--opuc-text-main); border-radius: 4px; outline: none; font-family: monospace;`;
-            box.appendChild(input);
-            
-            const btnRow = document.createElement('div');
-            btnRow.style.cssText = `display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;`;
-            
-            const cancel = document.createElement('button');
-            cancel.innerText = 'Cancel';
-            cancel.style.cssText = `padding: 6px 12px; border-radius: 4px; border: 1px solid var(--opuc-border); background: transparent; color: var(--opuc-text-main); cursor: pointer;`;
-            
-            const save = document.createElement('button');
-            save.innerText = 'Save';
-            save.style.cssText = `padding: 6px 12px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;`;
-            
-            const cleanup = () => { document.removeEventListener('keydown', keyH, true); modal.remove(); };
-            const doSave = () => { 
-                window.OPUcConfig.set('opuc_auto_resize', input.value.trim()); 
-                cleanup(); 
-                if (window.OPUcEditor) window.OPUcEditor.renderAllStagedItems();
-            };
-            
-            cancel.onclick = cleanup; save.onclick = doSave;
-            
-            const keyH = (e) => {
-                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cleanup(); }
-                if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); doSave(); }
-            };
-            document.addEventListener('keydown', keyH, true);
-            
-            btnRow.appendChild(cancel); btnRow.appendChild(save);
-            box.appendChild(btnRow); modal.appendChild(box);
-            document.body.appendChild(modal);
-            input.focus();
-            input.select();
         },
 
         buildContextMenu: function(isLoggedIn, textArea) {
@@ -205,19 +164,65 @@
             }));
             menu.appendChild(createItem('opuc-menu-gallery', '🖼️ <span style="margin-left: 8px;">Gallery</span>', () => { if (window.OPUcGallery) window.OPUcGallery.open(); }, !isLoggedIn));
             
-            menu.appendChild(createItem('opuc-menu-resize', '↔️ <span style="margin-left: 8px;">Resize</span>', () => {
-                const current = window.OPUcConfig.settings.autoResize;
-                this.showQuickResizeModal(current);
-            }));
+            // FIXED: Inline Text Input for Global Resize
+            const resizeRow = document.createElement('div');
+            resizeRow.style.cssText = `padding: 10px 15px; color: var(--opuc-text-main); font-size: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.05);`;
+            resizeRow.innerHTML = `
+                <div style="display:flex; align-items:center;">↔️ <span style="margin-left: 8px;">Resize</span></div>
+                <input type="text" id="opuc-menu-resize-input" title="Hit Enter to save" value="${window.OPUcConfig.settings.autoResize}" style="width: 50px; padding: 4px; background: var(--opuc-bg-primary); border: 1px solid var(--opuc-border); color: var(--opuc-text-main); border-radius: 4px; font-family: monospace; font-size: 12px; text-align: center; outline: none;">
+            `;
+            resizeRow.querySelector('input').addEventListener('click', (e) => e.stopPropagation());
+            resizeRow.querySelector('input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); e.stopPropagation();
+                    window.OPUcConfig.set('opuc_auto_resize', e.target.value.trim());
+                    menu.style.display = 'none';
+                    if (window.OPUcEditor) window.OPUcEditor.renderAllStagedItems();
+                }
+            });
+            resizeRow.querySelector('input').addEventListener('change', (e) => {
+                window.OPUcConfig.set('opuc_auto_resize', e.target.value.trim());
+                if (window.OPUcEditor) window.OPUcEditor.renderAllStagedItems();
+            });
+            menu.appendChild(resizeRow);
 
-            menu.appendChild(createItem('opuc-menu-toggle', '⏸️ <span style="margin-left: 8px;">Toggle Staging</span>', () => {
+            // FIXED: Custom CSS Switch Toggle for Staging
+            const toggleRow = document.createElement('div');
+            toggleRow.style.cssText = `padding: 10px 15px; cursor: pointer; color: var(--opuc-text-main); font-size: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.05);`;
+            
+            const isEnabled = window.OPUcConfig.settings.stagingEnabled;
+            const toggleBg = isEnabled ? 'var(--opuc-accent)' : 'var(--opuc-bg-primary)';
+            const toggleDot = isEnabled ? 'translateX(14px)' : 'translateX(0)';
+
+            toggleRow.innerHTML = `
+                <div style="display:flex; align-items:center;"><span id="opuc-menu-toggle-text">Staging ${isEnabled ? 'ON' : 'OFF'}</span></div>
+                <div id="opuc-menu-toggle-switch" style="width: 32px; height: 18px; background: ${toggleBg}; border-radius: 10px; position: relative; transition: background 0.2s; border: 1px solid var(--opuc-border); box-sizing: border-box;">
+                    <div id="opuc-menu-toggle-dot" style="width: 14px; height: 14px; background: #fff; border-radius: 50%; position: absolute; top: 1px; left: 1px; transition: transform 0.2s; transform: ${toggleDot}; box-shadow: 0 1px 2px rgba(0,0,0,0.3);"></div>
+                </div>
+            `;
+            
+            toggleRow.onmouseover = () => toggleRow.style.background = 'rgba(255, 152, 0, 0.2)';
+            toggleRow.onmouseout = () => toggleRow.style.background = 'transparent';
+            toggleRow.onclick = (e) => {
+                e.preventDefault(); e.stopPropagation(); // Don't close the menu
                 const current = window.OPUcConfig.settings.stagingEnabled;
-                window.OPUcConfig.set('opuc_staging_enabled', !current);
-                this.toggleStagingAll(!current);
-            }));
+                const newVal = !current;
+                window.OPUcConfig.set('opuc_staging_enabled', newVal);
+                if (window.OPUcUI && typeof window.OPUcUI.toggleStagingAll === 'function') {
+                    window.OPUcUI.toggleStagingAll(newVal);
+                }
+                
+                const textEl = toggleRow.querySelector('#opuc-menu-toggle-text');
+                const switchEl = toggleRow.querySelector('#opuc-menu-toggle-switch');
+                const dotEl = toggleRow.querySelector('#opuc-menu-toggle-dot');
+                textEl.innerText = `Staging ${newVal ? 'ON' : 'OFF'}`;
+                switchEl.style.background = newVal ? 'var(--opuc-accent)' : 'var(--opuc-bg-primary)';
+                dotEl.style.transform = newVal ? 'translateX(14px)' : 'translateX(0)';
+            };
+            menu.appendChild(toggleRow);
 
-            // FIXED: Replaced Gear with 32px NSKAL Icon
-            menu.appendChild(createItem('opuc-menu-settings', '<img src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png" style="width: 32px; height: 32px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.5);"> <span style="margin-left: 10px; font-weight: bold; color: var(--opuc-accent);">NSKAL Settings</span>', () => { if (window.OPUcSettings) window.OPUcSettings.open(); }));
+            // FIXED: Standard uniform font style for Settings row
+            menu.appendChild(createItem('opuc-menu-settings', '<img src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png" style="width: 32px; height: 32px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.5);"> <span style="margin-left: 10px;">Settings</span>', () => { if (window.OPUcSettings) window.OPUcSettings.open(); }));
             
             return menu;
         },
