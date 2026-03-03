@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png" width="150" alt="OPUc NSKAL The Mad Fixer">
+</p>
+
 # OPUc Ultimate ⚙️
 
-The ultimate userscript integration that brings the `opu.peklo.biz` image hoster directly into the `okoun.cz` messageboard. Manage, stage, leech URLs, and upload your images without ever leaving the reply box.
+The ultimate userscript integration that brings the `opu.peklo.biz` image hoster directly into the `okoun.cz` messageboard. Manage, stage, leech URLs, crop, resize, and upload your images without ever leaving the reply box.
 
 ## 🚀 Installation
 
@@ -14,12 +18,13 @@ Ensure you have a userscript manager installed (like [Tampermonkey](https://www.
 
 * **Multi-Instance Engine:** Seamlessly injects tools into the main text box AND any dynamic "Reply" boxes you open on the fly.
 * **Smart Interceptors:** Paste (`Ctrl+V`) OS files, use the Context Menu, or Drag & Drop images directly onto any Okoun reply box.
-* **URL Leeching:** Automatically extract and download image URLs from your clipboard directly into staging.
-* **Staging Area & Batch Uploads:** A visual ribbon to preview thumbnails, reorder via Drag & Drop, review metadata, and batch-upload multiple images.
-* **Caption & Style Editor:** Click the `✏️` on any staged image to add custom captions and override injection styles (e.g., Clickable Thumbnail) just for that image.
+* **Image Processor Studio:** A built-in dark-mode editor powered by Cropper.js. Click the `✂️` icon on any staged image to crop, pan, lock aspect ratios, and manually resize before uploading.
+* **Auto-Downscale Engine:** Set a global resize limit (e.g., `800x`, `50%`) and the script will automatically shrink massive mobile photos in your browser before they ever hit the network.
+* **Staging Area & Batch Uploads:** A visual ribbon to preview thumbnails, reorder via Drag & Drop, review real-time file sizes, and batch-upload multiple images.
+* **Caption & Style Editor:** Click the `✏️` on any staged image to add custom captions, configure HTML `title="..."` attributes, or override injection styles just for that image.
 * **Smart Auto-Detect Injection:** Automatically reads Okoun's format dropdown and intelligently converts your images to HTML, Markdown, or Radeox syntax with semantic spacing.
 * **OPUc Gallery:** A floating, infinite-scrolling overlay to browse and insert your previously uploaded OPU images.
-* **Custom Settings & Themes:** Configure keyboard shortcuts, UI scaling, dark/light themes, and custom injection formats.
+* **Custom Settings & Themes:** Configure keyboard shortcuts, UI scaling, dark/light themes, and custom injection formats. (Plus, a toggle to replace the main UI button with the Mad Fixer).
 
 ## 🗺️ Roadmap & Upcoming Features
 
@@ -34,12 +39,13 @@ Ensure you have a userscript manager installed (like [Tampermonkey](https://www.
 
 **Phase 3: Injection Arsenal**
 - [x] **Format Quick-Select:** Custom UI dropdowns to configure global and per-image injection styles.
-- [x] **Advanced Formats:** Pure URL, Standard `<img>`, Clickable `<a href>`, Clickable Thumbnail (OPU auto-thumb extraction), Markdown, and Radeox.
+- [x] **Advanced Formats:** Pure URL, Standard `<img>`, Clickable `<a href>`, Clickable Thumbnail, Markdown, Radeox, plus `title` and `width` attribute injection.
 - [x] **Live Preview:** A custom modal to preview the exact formatted code before uploading.
 
 **Phase 4: Power-User Upgrades**
+- [x] **Image Cropping Studio:** Full Cropper.js integration for precise framing and aspect ratio control.
+- [x] **Client-Side Downscaling:** Auto-resize oversized mobile photos via HTML5 Canvas to save data and bypass server limits.
 - [ ] **EXIF Privacy Stripper:** Client-side removal of GPS/camera data before upload.
-- [ ] **Client-Side Downscaling:** Auto-resize oversized mobile photos to save data and bypass server limits.
 - [ ] **Crash Recovery:** Serialize un-uploaded staging queues to IndexedDB to survive accidental tab closures.
 
 ## 📂 Project Structure
@@ -57,7 +63,10 @@ OPUc_ultimate/
 │   ├── 07-api.js            # Network layer, syntax auto-detection, and smart injection
 │   ├── 08-gallery.js        # Floating OPU gallery overlay with infinite scroll
 │   ├── 09-init.js           # Async Bootstrapper
-│   └── 10-settings.js       # User configuration modal and local storage manager
+│   ├── 10-settings.js       # User configuration modal and local storage manager
+│   └── 11-image-processor.js# Cropper.js studio for client-side resizing and framing
+├── NSKAL.png                # The Mad Fixer Logo
+├── NSKAL.mp4                # The secret Easter Egg animation
 └── README.md
 ```
 
