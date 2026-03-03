@@ -8,14 +8,16 @@
             if (!modal) {
                 modal = document.createElement('div');
                 modal.id = 'opuc-settings-modal';
-                modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483647; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px);`;
+                modal.tabIndex = -1; // FIXED: Allows the modal to catch keyboard events globally
+                modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483647; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
                 const container = document.createElement('div');
                 container.className = 'opuc-scalable'; 
+                // FIXED: Enforce max-height and strict flex column for scrolling child
                 container.style.cssText = `width: 90%; max-width: 500px; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font); max-height: 90vh;`;
 
                 const header = document.createElement('div');
-                header.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center;';
+                header.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;';
                 header.innerHTML = '<b style="font-size: 18px;">⚙️ OPUc Settings</b>';
                 const closeBtn = document.createElement('button');
                 closeBtn.innerHTML = '✖';
@@ -23,8 +25,9 @@
                 closeBtn.onclick = () => this.close();
                 header.appendChild(closeBtn);
 
+                // FIXED: flex: 1 and overflow-y: auto traps scrolling perfectly inside the modal
                 const body = document.createElement('div');
-                body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto;';
+                body.style.cssText = 'padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
                 const createHeader = (title) => {
                     const hdr = document.createElement('div');
@@ -44,7 +47,6 @@
                     const row = document.createElement('div');
                     row.style.cssText = 'display: flex; flex-direction: column; gap: 5px; font-size: 14px;';
                     
-                    // Legacy Fallback Reader
                     let currentVal = window.OPUcConfig.get(id, defaultVal);
                     if (currentVal === 'br' || currentVal === 'nl') currentVal = 'single';
                     if (currentVal === 'br2' || currentVal === 'nl2' || currentVal === 'auto') currentVal = 'double';
@@ -95,7 +97,6 @@
 
                 body.appendChild(createSelect('opuc_caption_position', 'Caption Position', [{ value: 'below', text: 'Below Image' }, { value: 'above', text: 'Above Image' }], 'below'));
                 
-                // FIXED: Semantic Spacing Dropdowns
                 body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing (Between text & img)', [
                     { value: 'single', text: 'Single Break' },
                     { value: 'double', text: 'Double Break (Paragraph)' },
@@ -111,17 +112,24 @@
                 ], 'double'));
 
                 const footer = document.createElement('div');
-                footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end;';
+                footer.style.cssText = 'padding: 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; flex-shrink: 0;';
                 const saveBtn = document.createElement('button');
                 saveBtn.innerText = 'Save Settings';
                 saveBtn.style.cssText = 'background: var(--opuc-accent); color: #000; font-family: inherit; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
                 saveBtn.onclick = () => this.saveAndClose();
+
+                // FIXED: Keyboard Listener for Settings
+                modal.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') { e.preventDefault(); this.close(); }
+                    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); this.saveAndClose(); }
+                });
 
                 footer.appendChild(saveBtn);
                 container.appendChild(header); container.appendChild(body); container.appendChild(footer);
                 modal.appendChild(container); document.body.appendChild(modal);
             }
             modal.style.display = 'flex';
+            modal.focus();
         },
 
         close: function() { const modal = document.getElementById('opuc-settings-modal'); if (modal) modal.style.display = 'none'; },

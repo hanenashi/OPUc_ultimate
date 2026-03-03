@@ -17,7 +17,6 @@
         calcTimeout: null,
 
         init: function() {
-            // Inject Cropper CSS if not present
             if (!document.getElementById('cropper-css')) {
                 const link = document.createElement('link');
                 link.id = 'cropper-css';
@@ -40,16 +39,16 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-crop-modal';
-            modal.tabIndex = -1;
+            modal.tabIndex = -1; // FIXED: Keyboard trap
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 2147483649; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px); outline: none; font-family: var(--opuc-font);`;
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable';
-            container.style.cssText = `width: 95%; max-width: 900px; height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);`;
+            // FIXED: max-height 90vh
+            container.style.cssText = `width: 95%; max-width: 900px; max-height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);`;
 
-            // Header
             const header = document.createElement('div');
-            header.style.cssText = 'padding: 12px 20px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; color: var(--opuc-text-main); font-weight: bold;';
+            header.style.cssText = 'padding: 12px 20px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; color: var(--opuc-text-main); font-weight: bold; flex-shrink: 0;';
             header.innerHTML = `<span>✂️ Image Processor</span>`;
             const closeBtn = document.createElement('button');
             closeBtn.innerHTML = '✖';
@@ -57,22 +56,18 @@
             closeBtn.onclick = () => this.close();
             header.appendChild(closeBtn);
 
-            // Main Body (Split View)
             const body = document.createElement('div');
             body.style.cssText = 'flex: 1; display: flex; flex-direction: column; overflow: hidden;';
             
-            // Cropper Canvas Area
             const canvasArea = document.createElement('div');
             canvasArea.style.cssText = 'flex: 1; background: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; min-height: 200px;';
             const imgEl = document.createElement('img');
             imgEl.style.cssText = 'max-width: 100%; max-height: 100%; display: block;';
             canvasArea.appendChild(imgEl);
 
-            // Controls Area
             const controlsArea = document.createElement('div');
-            controlsArea.style.cssText = 'padding: 15px 20px; background: var(--opuc-bg-primary); border-top: 1px solid var(--opuc-border); display: flex; flex-direction: column; gap: 15px;';
+            controlsArea.style.cssText = 'padding: 15px 20px; background: var(--opuc-bg-primary); border-top: 1px solid var(--opuc-border); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex-shrink: 0;';
 
-            // Top Control Row (Presets & Dimensions)
             const topControls = document.createElement('div');
             topControls.style.cssText = 'display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center;';
 
@@ -99,9 +94,8 @@
             topControls.appendChild(statsGroup);
             controlsArea.appendChild(topControls);
 
-            // Footer (Save/Cancel)
             const footer = document.createElement('div');
-            footer.style.cssText = 'padding: 12px 20px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px;';
+            footer.style.cssText = 'padding: 12px 20px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;';
             
             const cancelBtn = document.createElement('button');
             cancelBtn.innerText = 'Cancel';
@@ -112,6 +106,12 @@
             saveBtn.innerText = 'Crop & Save';
             saveBtn.style.cssText = 'padding: 8px 20px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
             saveBtn.onclick = () => this.applyCrop();
+
+            // FIXED: Keyboard Listeners
+            modal.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') { e.preventDefault(); this.close(); }
+                if (e.key === 'Enter') { e.preventDefault(); this.applyCrop(); }
+            });
 
             footer.appendChild(cancelBtn);
             footer.appendChild(saveBtn);
@@ -124,11 +124,8 @@
             modal.appendChild(container);
             document.body.appendChild(modal);
 
-            // Keyboard Escape
-            modal.addEventListener('keydown', (e) => { if (e.key === 'Escape') this.close(); });
             modal.focus();
 
-            // Load Image into Cropper
             const reader = new FileReader();
             reader.onload = (e) => {
                 imgEl.src = e.target.result;
@@ -160,7 +157,6 @@
                 cropBoxResizable: true,
                 toggleDragModeOnDblclick: true,
                 crop: () => {
-                    // Debounce the heavy file-size calculation so it doesn't lag the dragging
                     clearTimeout(this.calcTimeout);
                     this.calcTimeout = setTimeout(() => this.updateStatsUI(), 300);
                 }
@@ -172,9 +168,8 @@
             const statsBox = document.getElementById('opuc-crop-stats');
             if (!statsBox) return;
 
-            const cropData = this.cropperInstance.getData(true); // Rounded values
+            const cropData = this.cropperInstance.getData(true); 
             
-            // Generate a real-time blob to get accurate file size
             const canvas = this.cropperInstance.getCroppedCanvas();
             if (!canvas) return;
 
@@ -189,7 +184,7 @@
                     <b>Original:</b> ${this.originalDimensions.w} x ${this.originalDimensions.h}px (${origSizeStr})<br>
                     <b>New Crop:</b> ${cropData.width} x ${cropData.height}px (<span style="color:${colorClass}; font-weight:bold;">${newSizeStr}</span>)
                 `;
-            }, 'image/jpeg', 0.85); // 85% is a good web standard
+            }, 'image/jpeg', 0.85); 
         },
 
         applyCrop: function() {
@@ -201,21 +196,18 @@
             });
 
             canvas.toBlob((blob) => {
-                // Generate new File object
                 const ext = this.originalFile.name.split('.').pop().toLowerCase() || 'jpg';
                 const finalExt = (ext === 'png') ? 'png' : 'jpeg';
                 const newFileName = this.originalFile.name.replace(/\.[^/.]+$/, "") + `_cropped.${finalExt}`;
                 
                 const newFile = new File([blob], newFileName, { type: `image/${finalExt}` });
                 
-                // Preserve Metadata (Captions, Style overrides)
+                // FIXED: Store Original File, Captions, and Style overrides
+                newFile.opucOriginalFile = this.originalFile.opucOriginalFile || this.originalFile;
                 newFile.opucCaption = this.originalFile.opucCaption;
                 newFile.opucStyleOverride = this.originalFile.opucStyleOverride;
 
-                // Replace in Queue
                 window.OPUcEditor.queue[this.targetIndex] = newFile;
-                
-                // Refresh UI
                 window.OPUcEditor.renderAllStagedItems();
                 this.close();
             }, this.originalFile.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);

@@ -53,7 +53,7 @@
             container.dataset.index = index;
             container.draggable = true; 
             
-            container.style.cssText = `width: 120px; display: flex; flex-direction: column; border: 1px solid var(--opuc-border); border-radius: 4px; overflow: hidden; background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab; user-select: none; position: relative;`;
+            container.style.cssText = `width: 120px; display: flex; flex-direction: column; border: 1px solid var(--opuc-border); border-radius: 4px; background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab; user-select: none; position: relative; overflow: hidden;`;
 
             container.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', index); setTimeout(() => container.style.opacity = '0.4', 0); });
             container.addEventListener('dragend', () => { container.style.opacity = '1'; document.querySelectorAll('.opuc-stage-tile').forEach(el => el.classList.remove('opuc-drag-left', 'opuc-drag-right')); });
@@ -100,16 +100,26 @@
             editBtn.onclick = (e) => { e.preventDefault(); this.openCaptionModal(index); };
             topHalf.appendChild(editBtn);
 
-            // NEW: CROP BUBBLE
             const cropBtn = document.createElement('button');
             cropBtn.innerHTML = '✂️';
             cropBtn.title = 'Crop & Resize Image';
             cropBtn.style.cssText = `position: absolute; bottom: 4px; right: 4px; background: rgba(33, 150, 243, 0.9); color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
-            cropBtn.onclick = (e) => { 
-                e.preventDefault(); 
-                if (window.OPUcImageProcessor) window.OPUcImageProcessor.open(index); 
-            };
+            cropBtn.onclick = (e) => { e.preventDefault(); if (window.OPUcImageProcessor) window.OPUcImageProcessor.open(index); };
             topHalf.appendChild(cropBtn);
+
+            // FIXED: Undo Button logic if cropped
+            if (file.opucOriginalFile) {
+                const undoBtn = document.createElement('button');
+                undoBtn.innerHTML = '↺';
+                undoBtn.title = 'Undo crop/resize';
+                undoBtn.style.cssText = `position: absolute; bottom: 4px; left: 4px; background: rgba(156, 39, 176, 0.9); color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 13px; font-weight: bold; cursor: pointer; z-index: 10;`;
+                undoBtn.onclick = (e) => {
+                    e.preventDefault();
+                    this.queue[index] = file.opucOriginalFile;
+                    this.renderAllStagedItems();
+                };
+                topHalf.appendChild(undoBtn);
+            }
 
             container.appendChild(topHalf);
 
@@ -149,10 +159,11 @@
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable'; 
-            container.style.cssText = `width: 90%; max-width: 400px; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
+            // FIXED: Modal strict flex height
+            container.style.cssText = `width: 90%; max-width: 400px; max-height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
 
             const header = document.createElement('div');
-            header.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; font-weight: bold;';
+            header.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; font-weight: bold; flex-shrink: 0;';
             header.innerHTML = `<span>✏️ Edit File</span>`;
             const closeBtn = document.createElement('button');
             closeBtn.innerHTML = '✖';
@@ -160,8 +171,9 @@
             closeBtn.onclick = () => modal.remove();
             header.appendChild(closeBtn);
 
+            // FIXED: Body scroll trap
             const body = document.createElement('div');
-            body.style.cssText = 'padding: 15px; display: flex; flex-direction: column; gap: 15px;';
+            body.style.cssText = 'padding: 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
             const infoRow = document.createElement('div');
             infoRow.style.cssText = 'display: flex; gap: 15px; align-items: center;';
@@ -207,7 +219,7 @@
             styWrapper.appendChild(styLabel); styWrapper.appendChild(stySelect); body.appendChild(styWrapper);
 
             const footer = document.createElement('div');
-            footer.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px;';
+            footer.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;';
             const cancelBtn = document.createElement('button');
             cancelBtn.innerText = 'Cancel';
             cancelBtn.style.cssText = 'padding: 6px 12px; border-radius: 4px; border: 1px solid var(--opuc-border); background: transparent; color: var(--opuc-text-main); cursor: pointer;';
@@ -222,13 +234,11 @@
                 modal.remove(); this.renderAllStagedItems(); 
             };
 
+            // Keyboard navigation
             modal.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    e.preventDefault(); cancelBtn.click();
-                } else if (e.key === 'Enter') {
-                    if (e.target.tagName !== 'TEXTAREA' || e.ctrlKey) {
-                        e.preventDefault(); saveBtn.click();
-                    }
+                if (e.key === 'Escape') { e.preventDefault(); cancelBtn.click(); } 
+                else if (e.key === 'Enter') {
+                    if (e.target.tagName !== 'TEXTAREA' || e.ctrlKey) { e.preventDefault(); saveBtn.click(); }
                 }
             });
 
@@ -324,10 +334,11 @@
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable';
-            container.style.cssText = `width: 90%; max-width: 600px; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
+            // FIXED: Modal strict flex height
+            container.style.cssText = `width: 90%; max-width: 600px; max-height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
 
             const header = document.createElement('div');
-            header.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; font-weight: bold;';
+            header.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--opuc-border); display: flex; justify-content: space-between; align-items: center; font-weight: bold; flex-shrink: 0;';
             header.innerHTML = `<span>👁️ Preview (${currentBodyType.toUpperCase()} mode)</span>`;
             
             const closeBtn = document.createElement('button');
@@ -336,27 +347,27 @@
             closeBtn.onclick = () => modal.remove();
             header.appendChild(closeBtn);
 
+            // FIXED: Body scroll trap
             const body = document.createElement('div');
-            body.style.cssText = 'padding: 15px; display: flex; flex-direction: column; gap: 15px;';
+            body.style.cssText = 'padding: 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
             const textArea = document.createElement('textarea');
             textArea.value = simulatedOutput;
             textArea.readOnly = true;
-            textArea.style.cssText = 'width: 100%; height: 250px; padding: 10px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: monospace; font-size: 13px; resize: vertical; box-sizing: border-box; outline: none; white-space: pre-wrap;';
+            textArea.style.cssText = 'width: 100%; min-height: 250px; padding: 10px; border-radius: 4px; border: 1px solid var(--opuc-border); background: var(--opuc-bg-primary); color: var(--opuc-text-main); font-family: monospace; font-size: 13px; resize: vertical; box-sizing: border-box; outline: none; white-space: pre-wrap;';
             body.appendChild(textArea);
 
             const footer = document.createElement('div');
-            footer.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px;';
+            footer.style.cssText = 'padding: 12px 15px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;';
             
             const okBtn = document.createElement('button');
             okBtn.innerText = 'Close';
             okBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
             okBtn.onclick = () => modal.remove();
 
+            // Keyboard
             modal.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' || e.key === 'Enter') {
-                    e.preventDefault(); modal.remove();
-                }
+                if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); modal.remove(); }
             });
 
             footer.appendChild(okBtn);

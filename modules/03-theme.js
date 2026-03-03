@@ -32,16 +32,15 @@
 
                 .opuc-staging-area {
                     display: none; width: 100%; min-height: 80px; background: var(--opuc-bg-primary);
-                    border: 2px dashed var(--opuc-border); 
-                    margin: 15px 0 12px 0; /* FIXED: Added 15px top margin for breathing room */
-                    border-radius: var(--opuc-radius);
+                    border: 2px dashed var(--opuc-border); margin: 15px 0 12px 0; border-radius: var(--opuc-radius);
                     padding: 10px; box-sizing: border-box; color: var(--opuc-text-main); font-family: var(--opuc-font);
                 }
                 .opuc-staging-area.active { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-                .opuc-stage-tile { transition: margin 0.2s ease, opacity 0.2s ease; }
-                .opuc-drag-left { margin-left: 20px !important; box-shadow: -10px 0 0 -6px var(--opuc-accent) !important; }
-                .opuc-drag-right { margin-right: 20px !important; box-shadow: 10px 0 0 -6px var(--opuc-accent) !important; }
+                /* FIXED: Removed margin-shifts to prevent hover wiggling. Uses inset shadows instead. */
+                .opuc-stage-tile { transition: opacity 0.2s ease; overflow: hidden; }
+                .opuc-drag-left { box-shadow: inset 6px 0 0 0 var(--opuc-accent) !important; }
+                .opuc-drag-right { box-shadow: inset -6px 0 0 0 var(--opuc-accent) !important; }
 
                 .opuc-drag-active { border: 2px dashed var(--opuc-accent) !important; background-color: rgba(255, 152, 0, 0.1) !important; }
                 .opuc-scalable { transform: scale(var(--opuc-scale)); }
