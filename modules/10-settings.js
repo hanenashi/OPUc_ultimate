@@ -74,10 +74,21 @@
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
                 
                 body.appendChild(createHeader('📝 Captions & Formatting'));
-                body.appendChild(createInput('opuc_auto_resize', 'Global Auto-Resize (Prefills Processor)', '100%', '<small style="color:var(--opuc-text-muted);">(e.g. 800x, x600, 800x600, 50%)</small>'));
+                body.appendChild(createInput('opuc_auto_resize', 'Global Auto-Resize (Physical pixels)', '100%', '<small style="color:var(--opuc-text-muted);">(e.g. 800x, x600, 800x600, 50%)</small>'));
+                
+                // NEW: Global Width Attribute
+                body.appendChild(createInput('opuc_image_width', 'Inject HTML width="..." attribute', '', '<small style="color:var(--opuc-text-muted);">(e.g. 500, 100%, leave empty for none)</small>'));
+
                 body.appendChild(createSelect('opuc_format', 'Format (Syntax)', [{ value: 'auto', text: 'Auto-detect from Form' }, { value: 'plain', text: 'Text (Plain)' }, { value: 'html', text: 'HTML' }, { value: 'radeox', text: 'Radeox' }, { value: 'markdown', text: 'Markdown' }], 'auto'));
                 body.appendChild(createSelect('opuc_style', 'Style (Tag Type)', [{ value: 'url', text: 'Pure URL' }, { value: 'image', text: 'Image' }, { value: 'link', text: 'Link' }, { value: 'thumb', text: 'Linked Thumbnail' }], 'image'));
-                body.appendChild(createSelect('opuc_caption_position', 'Caption Position', [{ value: 'below', text: 'Below Image' }, { value: 'above', text: 'Above Image' }], 'below'));
+                
+                // FIXED: Added "Inside Image (Title)"
+                body.appendChild(createSelect('opuc_caption_position', 'Caption Position', [
+                    { value: 'below', text: 'Below Image' }, 
+                    { value: 'above', text: 'Above Image' },
+                    { value: 'title', text: 'Inside Image (Title/Alt Attribute)' }
+                ], 'below'));
+
                 body.appendChild(createSelect('opuc_caption_spacing', 'Caption Spacing', [{ value: 'single', text: 'Single Break' }, { value: 'double', text: 'Double Break' }, { value: 'space', text: 'Inline Space' }, { value: 'none', text: 'None' }], 'double'));
                 body.appendChild(createSelect('opuc_between_spacing', 'Spacing BETWEEN uploads', [{ value: 'single', text: 'Single Break' }, { value: 'double', text: 'Double Break' }, { value: 'space', text: 'Inline Space' }, { value: 'none', text: 'None' }], 'double'));
 
@@ -88,7 +99,6 @@
                 saveBtn.style.cssText = 'background: var(--opuc-accent); color: #000; font-family: inherit; font-weight: bold; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;';
                 saveBtn.onclick = () => this.saveAndClose();
 
-                // FIXED: Capture Phase Keydown
                 modal.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.close(); }
                     if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); e.stopPropagation(); this.saveAndClose(); }
@@ -115,6 +125,7 @@
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
             window.OPUcConfig.set('opuc_auto_resize', document.getElementById('opuc_auto_resize').value);
+            window.OPUcConfig.set('opuc_image_width', document.getElementById('opuc_image_width').value); // NEW
             window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
             window.OPUcConfig.set('opuc_style', document.getElementById('opuc_style').value);
             window.OPUcConfig.set('opuc_caption_position', document.getElementById('opuc_caption_position').value);

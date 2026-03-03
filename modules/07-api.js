@@ -60,47 +60,55 @@
             return null;
         },
 
+        // FIXED: The Ultimate Tag Builder (Now with title= and width= support)
         buildTag: function(imageUrl, metadata = {}, currentBodyType, isLastItem) {
             let format = window.OPUcConfig.settings.format;
             if (format === 'auto') format = currentBodyType;
 
             let style = metadata.styleOverride || window.OPUcConfig.settings.style;
+            
+            const isTitleMode = (metadata.caption && window.OPUcConfig.settings.captionPosition === 'title');
+            const safeCap = isTitleMode ? metadata.caption.replace(/"/g, '&quot;') : '';
+            
+            const gw = window.OPUcConfig.settings.imageWidth;
+            const wAttr = (gw && gw.trim() !== '') ? ` width="${gw.trim()}"` : '';
+
             let formatString = '%url%'; 
 
             if (format === 'html') {
-                if (style === 'image') formatString = '<img src="%url%">';
-                else if (style === 'link') formatString = '<a href="%url%">%url%</a>';
-                else if (style === 'thumb') formatString = '<a href="%url%"><img src="%thumb%"></a>';
-            } else if (format === 'markdown') {
-                if (style === 'image') formatString = '![](%url%)';
-                else if (style === 'link') formatString = '[%url%](%url%)';
-                else if (style === 'thumb') formatString = '[![thumb](%thumb%)](%url%)';
-            } else if (format === 'radeox') {
-                if (style === 'image') formatString = '[img:%url%]';
-                else if (style === 'link') formatString = '[url=%url%]'; 
-                else if (style === 'thumb') formatString = '[url=%url%][img:%thumb%][/url]';
+                if (style === 'image') formatString = `<img src="%url%"${wAttr}${isTitleMode ? ` title="${safeCap}" alt="${safeCap}"` : ''}>`;
+                else if (style === 'link') formatString = `<a href="%url%"${isTitleMode ? ` title="${safeCap}"` : ''}>%url%</a>`;
+                else if (style === 'thumb') formatString = `<a href="%url%"${isTitleMode ? ` title="${safeCap}"` : ''}><img src="%thumb%"${wAttr}${isTitleMode ? ` alt="${safeCap}"` : ''}></a>`;
+            } 
+            else if (format === 'markdown') {
+                if (style === 'image') formatString = `![${isTitleMode ? safeCap : ''}](%url%${isTitleMode ? ` "${safeCap}"` : ''})`;
+                else if (style === 'link') formatString = `[${isTitleMode ? safeCap : '%url%'}](%url%${isTitleMode ? ` "${safeCap}"` : ''})`;
+                else if (style === 'thumb') formatString = `[![${isTitleMode ? safeCap : 'thumb'}](%thumb%)](%url%${isTitleMode ? ` "${safeCap}"` : ''})`;
+            } 
+            else if (format === 'radeox') {
+                // Radeox lacks native width/title syntax, falling back to clean tags
+                if (style === 'image') formatString = `[img:%url%]`;
+                else if (style === 'link') formatString = `[url=%url%]${isTitleMode ? safeCap : '%url%'}[/url]`; 
+                else if (style === 'thumb') formatString = `[url=%url%][img:%thumb%][/url]`;
             }
 
             let thumbUrl = imageUrl.replace('/p/', '/t/');
             let formattedTag = formatString.replace(/%url%/g, imageUrl).replace(/%thumb%/g, thumbUrl);
 
             const isHtmlFormat = (format === 'html');
-            
-            // NEW: Semantic Spacing Engine
             const getSpacing = (semanticType) => {
-                // Legacy fallbacks for older saves
                 if (semanticType === 'br' || semanticType === 'nl') semanticType = 'single';
                 if (semanticType === 'br2' || semanticType === 'nl2' || semanticType === 'auto') semanticType = 'double';
                 
                 if (semanticType === 'single') return isHtmlFormat ? '<br>\n' : '\n';
                 if (semanticType === 'double') return isHtmlFormat ? '<br><br>\n' : '\n\n';
                 if (semanticType === 'space') return ' ';
-                if (semanticType === 'none') return isHtmlFormat ? '\n' : ''; // \n in HTML source won't break layout
+                if (semanticType === 'none') return isHtmlFormat ? '\n' : ''; 
                 return isHtmlFormat ? '<br><br>\n' : '\n\n';
             };
 
-            // Stitch Caption
-            if (metadata.caption) {
+            // Prepend/Append Text Caption ONLY if it's NOT injected as a Title Attribute
+            if (metadata.caption && !isTitleMode) {
                 const pos = window.OPUcConfig.settings.captionPosition; 
                 const spc = window.OPUcConfig.settings.captionSpacing; 
                 let sep = getSpacing(spc);
@@ -109,7 +117,6 @@
                 else formattedTag = formattedTag + sep + metadata.caption;
             }
             
-            // Append spacing between multiple uploads
             if (!isLastItem) {
                 const betSpc = window.OPUcConfig.settings.betweenSpacing;
                 formattedTag += getSpacing(betSpc);
