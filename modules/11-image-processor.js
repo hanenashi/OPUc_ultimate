@@ -15,6 +15,7 @@
         originalFile: null,
         originalDimensions: { w: 0, h: 0 },
         calcTimeout: null,
+        keyHandler: null, // Stores reference for cleanup
 
         init: function() {
             if (!document.getElementById('cropper-css')) {
@@ -39,12 +40,10 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-crop-modal';
-            modal.tabIndex = -1; // FIXED: Keyboard trap
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 2147483649; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px); outline: none; font-family: var(--opuc-font);`;
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable';
-            // FIXED: max-height 90vh
             container.style.cssText = `width: 95%; max-width: 900px; max-height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);`;
 
             const header = document.createElement('div');
@@ -90,9 +89,7 @@
             statsGroup.id = 'opuc-crop-stats';
             statsGroup.innerHTML = `<b>Original:</b> Loading...<br><b>New:</b> Calculating...`;
 
-            topControls.appendChild(presetGroup);
-            topControls.appendChild(statsGroup);
-            controlsArea.appendChild(topControls);
+            topControls.appendChild(presetGroup); topControls.appendChild(statsGroup); controlsArea.appendChild(topControls);
 
             const footer = document.createElement('div');
             footer.style.cssText = 'padding: 12px 20px; background: rgba(0,0,0,0.05); border-top: 1px solid var(--opuc-border); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;';
@@ -107,24 +104,17 @@
             saveBtn.style.cssText = 'padding: 8px 20px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
             saveBtn.onclick = () => this.applyCrop();
 
-            // FIXED: Keyboard Listeners
-            modal.addEventListener('keydown', (e) => {
+            // FIXED: Global Document Listener for Absolute Priority
+            this.keyHandler = (e) => {
                 if (e.key === 'Escape') { e.preventDefault(); this.close(); }
                 if (e.key === 'Enter') { e.preventDefault(); this.applyCrop(); }
-            });
+            };
+            document.addEventListener('keydown', this.keyHandler);
 
-            footer.appendChild(cancelBtn);
-            footer.appendChild(saveBtn);
-
-            body.appendChild(canvasArea);
-            body.appendChild(controlsArea);
-            container.appendChild(header);
-            container.appendChild(body);
-            container.appendChild(footer);
-            modal.appendChild(container);
-            document.body.appendChild(modal);
-
-            modal.focus();
+            footer.appendChild(cancelBtn); footer.appendChild(saveBtn);
+            body.appendChild(canvasArea); body.appendChild(controlsArea);
+            container.appendChild(header); container.appendChild(body); container.appendChild(footer);
+            modal.appendChild(container); document.body.appendChild(modal);
 
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -140,21 +130,10 @@
         },
 
         initCropper: function(imgElement) {
-            if (typeof Cropper === 'undefined') {
-                alert("Cropper.js library failed to load.");
-                return;
-            }
-
+            if (typeof Cropper === 'undefined') { alert("Cropper.js failed to load."); return; }
             this.cropperInstance = new Cropper(imgElement, {
-                viewMode: 1,
-                dragMode: 'crop',
-                autoCropArea: 0.9,
-                restore: false,
-                guides: true,
-                center: true,
-                highlight: false,
-                cropBoxMovable: true,
-                cropBoxResizable: true,
+                viewMode: 1, dragMode: 'crop', autoCropArea: 0.9, restore: false, guides: true,
+                center: true, highlight: false, cropBoxMovable: true, cropBoxResizable: true,
                 toggleDragModeOnDblclick: true,
                 crop: () => {
                     clearTimeout(this.calcTimeout);
@@ -169,40 +148,30 @@
             if (!statsBox) return;
 
             const cropData = this.cropperInstance.getData(true); 
-            
             const canvas = this.cropperInstance.getCroppedCanvas();
             if (!canvas) return;
 
             canvas.toBlob((blob) => {
                 const origSizeStr = formatBytes(this.originalFile.size);
                 const newSizeStr = formatBytes(blob.size);
-                
                 let colorClass = 'var(--opuc-success)';
                 if (blob.size > this.originalFile.size) colorClass = 'var(--opuc-danger)';
 
-                statsBox.innerHTML = `
-                    <b>Original:</b> ${this.originalDimensions.w} x ${this.originalDimensions.h}px (${origSizeStr})<br>
-                    <b>New Crop:</b> ${cropData.width} x ${cropData.height}px (<span style="color:${colorClass}; font-weight:bold;">${newSizeStr}</span>)
-                `;
+                statsBox.innerHTML = `<b>Original:</b> ${this.originalDimensions.w} x ${this.originalDimensions.h}px (${origSizeStr})<br>
+                                      <b>New Crop:</b> ${cropData.width} x ${cropData.height}px (<span style="color:${colorClass}; font-weight:bold;">${newSizeStr}</span>)`;
             }, 'image/jpeg', 0.85); 
         },
 
         applyCrop: function() {
             if (!this.cropperInstance) return;
-            
-            const canvas = this.cropperInstance.getCroppedCanvas({
-                imageSmoothingEnabled: true,
-                imageSmoothingQuality: 'high',
-            });
+            const canvas = this.cropperInstance.getCroppedCanvas({ imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
 
             canvas.toBlob((blob) => {
                 const ext = this.originalFile.name.split('.').pop().toLowerCase() || 'jpg';
                 const finalExt = (ext === 'png') ? 'png' : 'jpeg';
                 const newFileName = this.originalFile.name.replace(/\.[^/.]+$/, "") + `_cropped.${finalExt}`;
-                
                 const newFile = new File([blob], newFileName, { type: `image/${finalExt}` });
                 
-                // FIXED: Store Original File, Captions, and Style overrides
                 newFile.opucOriginalFile = this.originalFile.opucOriginalFile || this.originalFile;
                 newFile.opucCaption = this.originalFile.opucCaption;
                 newFile.opucStyleOverride = this.originalFile.opucStyleOverride;
@@ -214,14 +183,11 @@
         },
 
         close: function() {
-            if (this.cropperInstance) {
-                this.cropperInstance.destroy();
-                this.cropperInstance = null;
-            }
+            if (this.keyHandler) { document.removeEventListener('keydown', this.keyHandler); this.keyHandler = null; }
+            if (this.cropperInstance) { this.cropperInstance.destroy(); this.cropperInstance = null; }
             const modal = document.getElementById('opuc-crop-modal');
             if (modal) modal.remove();
-            this.targetIndex = null;
-            this.originalFile = null;
+            this.targetIndex = null; this.originalFile = null;
         }
     };
 })();

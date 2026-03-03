@@ -47,6 +47,12 @@
             this.refreshControls();
         },
 
+        // FIXED: Function restored!
+        removeFromQueue: function(index) {
+            this.queue[index] = null; 
+            this.renderAllStagedItems();
+        },
+
         renderStagedItem: function(file, index) {
             const container = document.createElement('div');
             container.className = 'opuc-stage-tile';
@@ -96,7 +102,8 @@
             const editBtn = document.createElement('button');
             editBtn.innerHTML = hasCaption ? '💬' : '✏️';
             editBtn.title = hasCaption ? (file.opucCaption || 'Custom Style Active') : 'Add Caption / Style Override';
-            editBtn.style.cssText = `position: absolute; top: 4px; right: 4px; background: ${hasCaption ? 'rgba(76, 175, 80, 0.95)' : 'rgba(255, 152, 0, 0.9)'}; color: ${hasCaption ? '#fff' : '#000'}; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
+            // FIXED: Pink pencil (#E91E63)
+            editBtn.style.cssText = `position: absolute; top: 4px; right: 4px; background: ${hasCaption ? 'rgba(76, 175, 80, 0.95)' : 'rgba(233, 30, 99, 0.9)'}; color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;`;
             editBtn.onclick = (e) => { e.preventDefault(); this.openCaptionModal(index); };
             topHalf.appendChild(editBtn);
 
@@ -107,17 +114,12 @@
             cropBtn.onclick = (e) => { e.preventDefault(); if (window.OPUcImageProcessor) window.OPUcImageProcessor.open(index); };
             topHalf.appendChild(cropBtn);
 
-            // FIXED: Undo Button logic if cropped
             if (file.opucOriginalFile) {
                 const undoBtn = document.createElement('button');
                 undoBtn.innerHTML = '↺';
                 undoBtn.title = 'Undo crop/resize';
                 undoBtn.style.cssText = `position: absolute; bottom: 4px; left: 4px; background: rgba(156, 39, 176, 0.9); color: #fff; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 13px; font-weight: bold; cursor: pointer; z-index: 10;`;
-                undoBtn.onclick = (e) => {
-                    e.preventDefault();
-                    this.queue[index] = file.opucOriginalFile;
-                    this.renderAllStagedItems();
-                };
+                undoBtn.onclick = (e) => { e.preventDefault(); this.queue[index] = file.opucOriginalFile; this.renderAllStagedItems(); };
                 topHalf.appendChild(undoBtn);
             }
 
@@ -154,12 +156,10 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-caption-modal';
-            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable'; 
-            // FIXED: Modal strict flex height
             container.style.cssText = `width: 90%; max-width: 400px; max-height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
 
             const header = document.createElement('div');
@@ -168,10 +168,8 @@
             const closeBtn = document.createElement('button');
             closeBtn.innerHTML = '✖';
             closeBtn.style.cssText = 'background: none; border: none; color: var(--opuc-text-main); font-size: 16px; cursor: pointer;';
-            closeBtn.onclick = () => modal.remove();
             header.appendChild(closeBtn);
 
-            // FIXED: Body scroll trap
             const body = document.createElement('div');
             body.style.cssText = 'padding: 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
@@ -203,10 +201,8 @@
             
             const options = [
                 { val: '', text: '-- Use Global Default --' },
-                { val: 'url', text: 'Pure URL' },
-                { val: 'image', text: 'Image' },
-                { val: 'link', text: 'Link' },
-                { val: 'thumb', text: 'Linked Thumbnail' }
+                { val: 'url', text: 'Pure URL' }, { val: 'image', text: 'Image' },
+                { val: 'link', text: 'Link' }, { val: 'thumb', text: 'Linked Thumbnail' }
             ];
 
             options.forEach(opt => {
@@ -223,30 +219,32 @@
             const cancelBtn = document.createElement('button');
             cancelBtn.innerText = 'Cancel';
             cancelBtn.style.cssText = 'padding: 6px 12px; border-radius: 4px; border: 1px solid var(--opuc-border); background: transparent; color: var(--opuc-text-main); cursor: pointer;';
-            cancelBtn.onclick = () => modal.remove();
 
             const saveBtn = document.createElement('button');
             saveBtn.innerText = 'Save';
             saveBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
-            saveBtn.onclick = () => {
+
+            // FIXED: Global Document Key Listener for absolute reliability
+            const keyHandler = (e) => {
+                if (e.key === 'Escape') { e.preventDefault(); cleanup(); } 
+                else if (e.key === 'Enter') {
+                    if (e.target.tagName !== 'TEXTAREA' || e.ctrlKey) { e.preventDefault(); doSave(); }
+                }
+            };
+            document.addEventListener('keydown', keyHandler);
+
+            const cleanup = () => { document.removeEventListener('keydown', keyHandler); modal.remove(); };
+            const doSave = () => {
                 file.opucCaption = capInput.value.trim();
                 file.opucStyleOverride = stySelect.value;
-                modal.remove(); this.renderAllStagedItems(); 
+                cleanup(); this.renderAllStagedItems(); 
             };
 
-            // Keyboard navigation
-            modal.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') { e.preventDefault(); cancelBtn.click(); } 
-                else if (e.key === 'Enter') {
-                    if (e.target.tagName !== 'TEXTAREA' || e.ctrlKey) { e.preventDefault(); saveBtn.click(); }
-                }
-            });
+            closeBtn.onclick = cleanup; cancelBtn.onclick = cleanup; saveBtn.onclick = doSave;
 
             footer.appendChild(cancelBtn); footer.appendChild(saveBtn);
             container.appendChild(header); container.appendChild(body); container.appendChild(footer);
             modal.appendChild(container); document.body.appendChild(modal);
-            
-            modal.focus();
             setTimeout(() => capInput.focus(), 10);
         },
 
@@ -265,9 +263,7 @@
             btn.style.cssText = 'user-select: none; cursor: pointer; font-weight: bold; transition: background-image 0.2s linear;';
             btn.onclick = onClick;
             
-            innerSpan.appendChild(btn);
-            outerSpan.appendChild(innerSpan);
-            return { wrapper: outerSpan, btn: btn };
+            innerSpan.appendChild(btn); outerSpan.appendChild(innerSpan); return { wrapper: outerSpan, btn: btn };
         },
 
         refreshControls: function() {
@@ -278,14 +274,12 @@
                     controls.style.display = 'flex'; controls.innerHTML = ''; 
                     
                     const clearBtn = this.createYUIButton('Clear', null, (e) => {
-                        e.preventDefault();
-                        if (this.isUploading) return;
+                        e.preventDefault(); if (this.isUploading) return;
                         this.queue = []; this.renderAllStagedItems();
                     });
 
                     const previewBtn = this.createYUIButton('Preview', null, (e) => {
-                        e.preventDefault();
-                        if (this.isUploading) return;
+                        e.preventDefault(); if (this.isUploading) return;
                         this.showPreviewModal(controls);
                     });
 
@@ -297,9 +291,7 @@
                         await this.flushQueue(activeItems);
                     });
 
-                    controls.appendChild(clearBtn.wrapper);
-                    controls.appendChild(previewBtn.wrapper);
-                    controls.appendChild(uploadBtn.wrapper);
+                    controls.appendChild(clearBtn.wrapper); controls.appendChild(previewBtn.wrapper); controls.appendChild(uploadBtn.wrapper);
                 } else {
                     controls.style.display = 'none';
                     if(window.OPUcUI) window.OPUcUI.toggleStagingAll(false);
@@ -329,12 +321,10 @@
 
             modal = document.createElement('div');
             modal.id = 'opuc-preview-modal';
-            modal.tabIndex = -1;
             modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 2147483648; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); outline: none;`;
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable';
-            // FIXED: Modal strict flex height
             container.style.cssText = `width: 90%; max-width: 600px; max-height: 90vh; background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
 
             const header = document.createElement('div');
@@ -344,10 +334,8 @@
             const closeBtn = document.createElement('button');
             closeBtn.innerHTML = '✖';
             closeBtn.style.cssText = 'background: none; border: none; color: var(--opuc-text-main); font-size: 16px; cursor: pointer;';
-            closeBtn.onclick = () => modal.remove();
             header.appendChild(closeBtn);
 
-            // FIXED: Body scroll trap
             const body = document.createElement('div');
             body.style.cssText = 'padding: 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex: 1;';
 
@@ -363,18 +351,18 @@
             const okBtn = document.createElement('button');
             okBtn.innerText = 'Close';
             okBtn.style.cssText = 'padding: 6px 16px; border-radius: 4px; border: none; background: var(--opuc-accent); color: #000; font-weight: bold; cursor: pointer;';
-            okBtn.onclick = () => modal.remove();
 
-            // Keyboard
-            modal.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); modal.remove(); }
-            });
+            // FIXED: Global Document Key Listener
+            const keyHandler = (e) => {
+                if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); cleanup(); }
+            };
+            document.addEventListener('keydown', keyHandler);
 
-            footer.appendChild(okBtn);
-            container.appendChild(header); container.appendChild(body); container.appendChild(footer);
+            const cleanup = () => { document.removeEventListener('keydown', keyHandler); modal.remove(); };
+
+            closeBtn.onclick = cleanup; okBtn.onclick = cleanup;
+            footer.appendChild(okBtn); container.appendChild(header); container.appendChild(body); container.appendChild(footer);
             modal.appendChild(container); document.body.appendChild(modal);
-
-            modal.focus();
         },
 
         flushQueue: async function(itemsToUpload) {
@@ -400,9 +388,7 @@
                         document.querySelectorAll('.opuc-upload-btn').forEach(btn => {
                             btn.style.setProperty('background-image', `linear-gradient(90deg, #F44336 ${pct}%, #aaa ${pct}%)`, 'important');
                         });
-                    } catch (err) {
-                        console.error("OPUc Upload/Inject Error:", err);
-                    }
+                    } catch (err) { console.error("OPUc Upload Error:", err); }
                 }
             }
             this.isUploading = false; this.renderAllStagedItems(); 
@@ -417,9 +403,7 @@
                     const isLastItem = (i === filesArray.length - 1);
                     await window.OPUcAPI.upload(filesArray[i], {}, isLastItem); 
                     completed++; window.OPUcUI.updateProgress(completed, total);
-                } catch (err) {
-                    console.error("OPUc Direct Upload/Inject Error:", err);
-                }
+                } catch (err) { console.error("OPUc Direct Upload Error:", err); }
             }
             this.isUploading = false; window.OPUcUI.resetButtonState();
         }

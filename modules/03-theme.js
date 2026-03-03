@@ -32,12 +32,11 @@
 
                 .opuc-staging-area {
                     display: none; width: 100%; min-height: 80px; background: var(--opuc-bg-primary);
-                    border: 2px dashed var(--opuc-border); margin: 15px 0 12px 0; border-radius: var(--opuc-radius);
+                    border: 1px solid var(--opuc-text-main); margin: 15px 0 12px 0; border-radius: var(--opuc-radius);
                     padding: 10px; box-sizing: border-box; color: var(--opuc-text-main); font-family: var(--opuc-font);
                 }
                 .opuc-staging-area.active { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-                /* FIXED: Removed margin-shifts to prevent hover wiggling. Uses inset shadows instead. */
                 .opuc-stage-tile { transition: opacity 0.2s ease; overflow: hidden; }
                 .opuc-drag-left { box-shadow: inset 6px 0 0 0 var(--opuc-accent) !important; }
                 .opuc-drag-right { box-shadow: inset -6px 0 0 0 var(--opuc-accent) !important; }
