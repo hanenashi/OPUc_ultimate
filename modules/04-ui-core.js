@@ -57,7 +57,6 @@
             stagingArea.appendChild(stagingControls);
             textArea.parentNode.insertBefore(stagingArea, textArea);
 
-            // FIXED: Render Main Button depending on NSKAL Setting
             const isNskal = window.OPUcConfig.settings.nskalButton;
             const outerSpan = document.createElement('span');
             const innerSpan = document.createElement('span');
@@ -67,11 +66,11 @@
             opucBtn.title = 'Left Click: Add File | Right Click: Menu';
 
             if (isNskal) {
-                outerSpan.style.cssText = 'position: relative; display: inline-block; vertical-align: middle; margin-left: 5px;';
+                // Ensure proper spacing no matter where it gets injected
+                outerSpan.style.cssText = 'position: relative; display: inline-block; vertical-align: middle; margin: 0 5px;';
                 opucBtn.classList.add('opuc-nskal-btn');
                 opucBtn.innerHTML = '<img class="opuc-nskal-img" src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png">';
                 outerSpan.appendChild(opucBtn);
-                toolsRow.appendChild(outerSpan);
             } else {
                 outerSpan.className = 'yui-button default'; 
                 outerSpan.style.position = 'relative'; 
@@ -80,6 +79,17 @@
                 opucBtn.style.cssText = 'user-select: none; touch-action: manipulation; transition: background-image 0.2s linear;'; 
                 innerSpan.appendChild(opucBtn);
                 outerSpan.appendChild(innerSpan);
+            }
+
+            // FIXED: Position Injector Logic
+            const pos = window.OPUcConfig.settings.buttonPosition;
+            if (pos === 'left' && toolsRow.firstChild) {
+                toolsRow.insertBefore(outerSpan, toolsRow.firstChild);
+            } else if (pos === 'middle' && toolsRow.children.length > 1) {
+                // Typically the second child is the "Náhled" (Preview) button
+                toolsRow.insertBefore(outerSpan, toolsRow.children[1]);
+            } else {
+                // 'right' fallback
                 toolsRow.appendChild(outerSpan);
             }
 
@@ -265,3 +275,4 @@
         }
     };
 })();
+                
