@@ -15,7 +15,6 @@
 
                 const container = document.createElement('div');
                 container.className = 'opuc-scalable'; 
-                // FIXED: Inverse Scaling Math applied to width, max-width, and max-height
                 container.style.cssText = `width: calc(90vw / var(--opuc-scale)); max-width: calc(500px / var(--opuc-scale)); max-height: calc(90vh / var(--opuc-scale)); background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); color: var(--opuc-text-main); font-family: var(--opuc-font);`;
 
                 const header = document.createElement('div');
@@ -54,7 +53,7 @@
 
                 const versionText = document.createElement('div');
                 versionText.style.cssText = 'font-size: 13px; font-weight: bold; color: var(--opuc-text-muted); margin-top: 4px;';
-                versionText.innerText = 'Version 0.4.1'; // UPDATED
+                versionText.innerText = 'Version 0.4.2'; // UPDATED
 
                 nskalBanner.appendChild(avatarContainer);
                 nskalBanner.appendChild(titleText);
@@ -119,6 +118,13 @@
 
                 body.appendChild(createHeader('🎨 Appearance'));
                 body.appendChild(createToggle('opuc_nskal_button', 'Replace Main Button with NSKAL Icon', false)); 
+                // NEW: Button Position Dropdown
+                body.appendChild(createSelect('opuc_button_position', 'Button Position in Row', [
+                    { value: 'left', text: 'Left (First)' }, 
+                    { value: 'middle', text: 'Middle' }, 
+                    { value: 'right', text: 'Right (Last)' }
+                ], 'right'));
+                
                 body.appendChild(createSelect('opuc_theme', 'UI Theme', [{ value: 'classic', text: 'Okoun Classic (Light)' }, { value: 'dark', text: 'Night Mode (Dark)' }, { value: 'contrast', text: 'High Contrast (Hacker)' }, { value: 'retro', text: 'Retro 8-Bit' }], 'classic'));
                 body.appendChild(createSelect('opuc_ui_scale', 'Mobile UI Scale', [{ value: '0.8', text: '80% (Small)' }, { value: '1.0', text: '100% (Normal)' }, { value: '1.25', text: '125% (Large)' }, { value: '1.5', text: '150% (Extra Large)' }], '1.0'));
                 body.appendChild(createSelect('opuc_gallery_thumb_size', 'Gallery Thumbnail Size', [{ value: '80px', text: 'Small (80px)' }, { value: '100px', text: 'Medium (100px)' }, { value: '150px', text: 'Large (150px)' }, { value: '200px', text: 'X-Large (200px)' }], '100px'));
@@ -196,6 +202,7 @@
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
             window.OPUcConfig.set('opuc_nskal_button', document.getElementById('opuc_nskal_button').checked); 
+            window.OPUcConfig.set('opuc_button_position', document.getElementById('opuc_button_position').value); // NEW
             window.OPUcConfig.set('opuc_auto_resize', document.getElementById('opuc_auto_resize').value);
             window.OPUcConfig.set('opuc_image_width', document.getElementById('opuc_image_width').value); 
             window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
@@ -207,6 +214,7 @@
             if (window.OPUcUI && typeof window.OPUcUI.toggleStagingAll === 'function') window.OPUcUI.toggleStagingAll(document.getElementById('opuc_staging_enabled').checked);
             if (window.OPUcTheme) window.OPUcTheme.refresh();
             
+            alert('Settings Saved! Note: Changes to the Main Button appearance or position require a page refresh.');
             this.close();
         }
     };
