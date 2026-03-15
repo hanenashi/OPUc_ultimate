@@ -39,8 +39,9 @@
             get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'double'); },
             get betweenSpacing() { return window.OPUcConfig.get('opuc_between_spacing', 'double'); },
 
-            // NEW: The Mad Fixer Button Override
-            get nskalButton() { return window.OPUcConfig.get('opuc_nskal_button', false); }
+            get nskalButton() { return window.OPUcConfig.get('opuc_nskal_button', false); },
+            // NEW: Main Button Position
+            get buttonPosition() { return window.OPUcConfig.get('opuc_button_position', 'right'); }
         },
 
         state: { isLoggedIn: true, activeTextArea: null },
