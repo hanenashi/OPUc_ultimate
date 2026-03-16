@@ -66,14 +66,13 @@
             opucBtn.title = 'Left Click: Add File | Right Click: Menu';
 
             if (isNskal) {
-                // Ensure proper spacing no matter where it gets injected
                 outerSpan.style.cssText = 'position: relative; display: inline-block; vertical-align: middle; margin: 0 5px;';
                 opucBtn.classList.add('opuc-nskal-btn');
                 opucBtn.innerHTML = '<img class="opuc-nskal-img" src="https://raw.githubusercontent.com/hanenashi/OPUc_ultimate/main/NSKAL.png">';
                 outerSpan.appendChild(opucBtn);
             } else {
                 outerSpan.className = 'yui-button default'; 
-                outerSpan.style.position = 'relative'; 
+                outerSpan.style.cssText = 'position: relative; margin: 0 4px;'; // Added margin for spacing
                 innerSpan.className = 'first-child';
                 opucBtn.innerHTML = 'OPUc';
                 opucBtn.style.cssText = 'user-select: none; touch-action: manipulation; transition: background-image 0.2s linear;'; 
@@ -81,15 +80,22 @@
                 outerSpan.appendChild(innerSpan);
             }
 
-            // FIXED: Position Injector Logic
+            // FIXED: Smart DOM Anchoring for Position
             const pos = window.OPUcConfig.settings.buttonPosition;
-            if (pos === 'left' && toolsRow.firstChild) {
-                toolsRow.insertBefore(outerSpan, toolsRow.firstChild);
-            } else if (pos === 'middle' && toolsRow.children.length > 1) {
-                // Typically the second child is the "Náhled" (Preview) button
-                toolsRow.insertBefore(outerSpan, toolsRow.children[1]);
+            
+            // Hunt down Okoun's native buttons safely
+            const previewBtn = toolsRow.querySelector('button[name="previewFlag"]');
+            const submitBtns = Array.from(toolsRow.querySelectorAll('button[type="submit"]'));
+            const mainSubmitBtn = submitBtns.find(b => b.name !== 'previewFlag'); // The "Odeslat" button
+            
+            const nahledSpan = previewBtn ? previewBtn.closest('.yui-button') : null;
+            const odeslatSpan = mainSubmitBtn ? mainSubmitBtn.closest('.yui-button') : null;
+
+            if (pos === 'left' && odeslatSpan) {
+                toolsRow.insertBefore(outerSpan, odeslatSpan);
+            } else if (pos === 'middle' && nahledSpan) {
+                toolsRow.insertBefore(outerSpan, nahledSpan);
             } else {
-                // 'right' fallback
                 toolsRow.appendChild(outerSpan);
             }
 
@@ -275,4 +281,3 @@
         }
     };
 })();
-                
