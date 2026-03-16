@@ -1,9 +1,20 @@
+
 // modules/10-settings.js
 (function() {
     'use strict';
 
     window.OPUcSettings = {
         nskalTimer: null,
+
+        // NEW: Dynamic version extractor
+        getVersion: function() {
+            if (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) {
+                return GM_info.script.version;
+            } else if (typeof GM !== 'undefined' && GM.info && GM.info.script && GM.info.script.version) {
+                return GM.info.script.version;
+            }
+            return 'Auto (Local)';
+        },
 
         open: function() {
             let modal = document.getElementById('opuc-settings-modal');
@@ -53,7 +64,9 @@
 
                 const versionText = document.createElement('div');
                 versionText.style.cssText = 'font-size: 13px; font-weight: bold; color: var(--opuc-text-muted); margin-top: 4px;';
-                versionText.innerText = 'Version 0.4.2'; // UPDATED
+                
+                // FIXED: Inject the dynamically fetched version!
+                versionText.innerText = 'Version ' + this.getVersion(); 
 
                 nskalBanner.appendChild(avatarContainer);
                 nskalBanner.appendChild(titleText);
@@ -118,7 +131,6 @@
 
                 body.appendChild(createHeader('🎨 Appearance'));
                 body.appendChild(createToggle('opuc_nskal_button', 'Replace Main Button with NSKAL Icon', false)); 
-                // NEW: Button Position Dropdown
                 body.appendChild(createSelect('opuc_button_position', 'Button Position in Row', [
                     { value: 'left', text: 'Left (First)' }, 
                     { value: 'middle', text: 'Middle' }, 
@@ -202,7 +214,7 @@
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
             window.OPUcConfig.set('opuc_nskal_button', document.getElementById('opuc_nskal_button').checked); 
-            window.OPUcConfig.set('opuc_button_position', document.getElementById('opuc_button_position').value); // NEW
+            window.OPUcConfig.set('opuc_button_position', document.getElementById('opuc_button_position').value); 
             window.OPUcConfig.set('opuc_auto_resize', document.getElementById('opuc_auto_resize').value);
             window.OPUcConfig.set('opuc_image_width', document.getElementById('opuc_image_width').value); 
             window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
