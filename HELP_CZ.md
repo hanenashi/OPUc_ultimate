@@ -21,7 +21,7 @@ Instalace:
 2. Userscript manager nabídne instalaci skriptu.
 3. Potvrď instalaci.
 4. Otevři Okoun klub.
-5. U odpovědního pole by se mělo objevit tlačítko OPUc. Levý čudlík myši/poklep na founu vyvolá výběr obrázku pro nahrání/OPU galerii (nechá se nastavit v Settings, které se vyvolají pravým čudlíkem/podržením prstu na mobilu) 
+5. U odpovědního pole by se mělo objevit tlačítko OPUc. Levý čudlík myši/poklep na founu na OPUc vyvolá výběr obrázku pro nahrání/OPU galerii (nechá se nastavit v Settings, které se vyvolají pravým čudlíkem/podržením prstu na mobilu na OPUcu.) 
 
 Poznámka: instalovaný skript je hlavně loader. Skutečné moduly si natahuje z GitHubu, takže při aktualizaci repozitáře se nemusí pokaždé ručně přeinstalovávat celé monstrum. Ano, je to živé. Ano, může to kousnout.
 
