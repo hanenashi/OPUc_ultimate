@@ -6,6 +6,10 @@
 
 The ultimate userscript integration that brings the `opu.peklo.biz` image hoster directly into the `okoun.cz` messageboard. Manage, stage, leech URLs, crop, resize, and upload your images without ever leaving the reply box.
 
+## 📖 Help / Documentation
+
+- 🇨🇿 **[Česká nápověda / Czech help file](HELP_CZ.md)** — installation, basic use, staging ribbon, image resize/crop, captions, gallery, settings, and troubleshooting.
+
 ## 🚀 Installation
 
 Ensure you have a userscript manager installed (like [Tampermonkey](https://www.tampermonkey.net/), [Violentmonkey](https://violentmonkey.github.io/), or Greasemonkey).
@@ -70,6 +74,7 @@ OPUc_ultimate/
 │   └── 11-image-processor.js# Cropper.js studio for client-side resizing and framing
 ├── NSKAL.png                # The Mad Fixer Logo
 ├── NSKAL.mp4                # The secret Easter Egg animation
+├── HELP_CZ.md               # Czech user help / manual
 └── README.md
 ```
 
