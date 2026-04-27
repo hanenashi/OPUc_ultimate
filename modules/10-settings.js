@@ -119,13 +119,19 @@
                 body.appendChild(createSelect('opuc_gallery_thumb_size', 'Gallery Thumbnail Size', [{ value: '80px', text: 'Small (80px)' }, { value: '100px', text: 'Medium (100px)' }, { value: '150px', text: 'Large (150px)' }, { value: '200px', text: 'X-Large (200px)' }], '100px'));
 
                 body.appendChild(createHeader('⚙️ Behavior'));
+                // NEW: The Format Conversion Dropdown
+                body.appendChild(createSelect('opuc_upload_format', 'Force Upload Format (Converts heavy PNGs)', [
+                    { value: 'original', text: 'Keep Original Format' },
+                    { value: 'jpeg', text: 'Force JPEG (Smaller Size)' },
+                    { value: 'webp', text: 'Force WEBP (Smallest Size)' }
+                ], 'original'));
+
                 body.appendChild(createSelect('opuc_primary_action', 'Primary Button Click (Left/Tap)', [{ value: 'picker', text: 'Open OS File Picker' }, { value: 'gallery', text: 'Open OPU Gallery' }], 'picker'));
                 body.appendChild(createToggle('opuc_staging_enabled', 'Enable Staging Ribbon', true));
                 body.appendChild(createToggle('opuc_intercept_drop', 'Intercept Drag & Drop', true));
                 body.appendChild(createInput('opuc_upload_shortcut', 'Clipboard Shortcut', 'Alt+V', '<small style="color:var(--opuc-text-muted);">(e.g., Ctrl+V or Alt+V)</small>'));
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
                 
-                // FIXED: Direct text inputs for custom limit control
                 body.appendChild(createInput('opuc_max_staging_res', 'Auto-Downscale on Ingestion (Max px)', '0', '<small style="color:var(--opuc-text-muted);">(0 to disable, e.g., 3000)</small>'));
                 body.appendChild(createInput('opuc_manual_optimize_res', 'Manual ⚡ Optimize Target (Max px)', '2500', '<small style="color:var(--opuc-text-muted);">(e.g., 2500)</small>'));
 
@@ -191,9 +197,10 @@
             window.OPUcConfig.set('opuc_intercept_drop', document.getElementById('opuc_intercept_drop').checked);
             window.OPUcConfig.set('opuc_primary_action', document.getElementById('opuc_primary_action').value);
             
+            window.OPUcConfig.set('opuc_upload_format', document.getElementById('opuc_upload_format').value); // NEW
+            
             window.OPUcConfig.set('opuc_nskal_button', document.getElementById('opuc_nskal_button').checked); 
             window.OPUcConfig.set('opuc_button_position', document.getElementById('opuc_button_position').value); 
-            
             window.OPUcConfig.set('opuc_max_staging_res', document.getElementById('opuc_max_staging_res').value); 
             window.OPUcConfig.set('opuc_manual_optimize_res', document.getElementById('opuc_manual_optimize_res').value); 
 
@@ -208,7 +215,6 @@
             if (window.OPUcUI && typeof window.OPUcUI.toggleStagingAll === 'function') window.OPUcUI.toggleStagingAll(document.getElementById('opuc_staging_enabled').checked);
             if (window.OPUcTheme) window.OPUcTheme.refresh();
             
-            alert('Settings Saved! Note: Changes to the Main Button appearance or position require a page refresh.');
             this.close();
         }
     };
