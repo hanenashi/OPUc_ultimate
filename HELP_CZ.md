@@ -34,7 +34,7 @@ OPUc běží hlavně na stránkách Okounu:
 - posílání příspěvků
 - odpovědi
 
-Registrovaný OPU uživatel má k dispozici nahrávání více obrázků najednou a svoji OPU galerii. Anon/id bez OPU účtu může nahrát právě jeden soubor na každé použití OPUcu)
+Registrovaný OPU uživatel má k dispozici nahrávání více obrázků najednou a svoji OPU galerii. Anon/id bez OPU účtu může nahrát právě jeden soubor na každé použití OPUcu.
 
 ---
 
