@@ -216,6 +216,7 @@
             }, 'image/jpeg', 0.85); 
         },
 
+        // FIXED: Enforce Format Swap Rule on Explicit Crop
         applyCrop: function() {
             if (!this.cropperInstance) return;
             
@@ -226,22 +227,36 @@
             if (!isNaN(outH) && outH > 0) opts.height = outH;
 
             const canvas = this.cropperInstance.getCroppedCanvas(opts);
+            const targetFormat = window.OPUcConfig.settings.uploadFormat || 'original';
+            const origExt = this.originalFile.name.split('.').pop().toLowerCase() || 'jpg';
+            
+            let finalExt = origExt;
+            let mimeType = this.originalFile.type;
+            if (targetFormat === 'jpeg') { finalExt = 'jpeg'; mimeType = 'image/jpeg'; }
+            else if (targetFormat === 'webp') { finalExt = 'webp'; mimeType = 'image/webp'; }
+            else { finalExt = (origExt === 'png') ? 'png' : 'jpeg'; mimeType = (origExt === 'png') ? 'image/png' : 'image/jpeg'; }
+
+            // Protect transparent PNGs turning into JPEG blocks
+            if (mimeType === 'image/jpeg' && this.originalFile.type === 'image/png') {
+                const ctx = canvas.getContext('2d');
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
 
             canvas.toBlob((blob) => {
-                const ext = this.originalFile.name.split('.').pop().toLowerCase() || 'jpg';
-                const finalExt = (ext === 'png') ? 'png' : 'jpeg';
                 const newFileName = this.originalFile.name.replace(/\.[^/.]+$/, "") + `_cropped.${finalExt}`;
-                const newFile = new File([blob], newFileName, { type: `image/${finalExt}` });
+                const newFile = new File([blob], newFileName, { type: mimeType });
                 
                 newFile.opucOriginalFile = this.originalFile.opucOriginalFile || this.originalFile;
                 newFile.opucCaption = this.originalFile.opucCaption;
                 newFile.opucStyleOverride = this.originalFile.opucStyleOverride;
-                newFile.opucSelected = this.originalFile.opucSelected !== false; // Preserve Selection
+                newFile.opucSelected = this.originalFile.opucSelected !== false;
 
                 window.OPUcEditor.queue[this.targetIndex] = newFile;
                 window.OPUcEditor.renderAllStagedItems();
                 this.close();
-            }, this.originalFile.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+            }, mimeType, 0.85);
         },
 
         close: function() {
