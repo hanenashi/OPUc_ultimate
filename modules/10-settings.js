@@ -125,13 +125,9 @@
                 body.appendChild(createInput('opuc_upload_shortcut', 'Clipboard Shortcut', 'Alt+V', '<small style="color:var(--opuc-text-muted);">(e.g., Ctrl+V or Alt+V)</small>'));
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
                 
-                // NEW: Ingestion Armor Dropdown
-                body.appendChild(createSelect('opuc_max_staging_res', 'Auto-Downscale on Ingestion (Prevents Crashes)', [
-                    { value: '0', text: 'Off (Keep Original Size in Staging)' },
-                    { value: '2000', text: 'Max 2000px' },
-                    { value: '3000', text: 'Max 3000px' },
-                    { value: '4000', text: 'Max 4000px' }
-                ], '0'));
+                // FIXED: Direct text inputs for custom limit control
+                body.appendChild(createInput('opuc_max_staging_res', 'Auto-Downscale on Ingestion (Max px)', '0', '<small style="color:var(--opuc-text-muted);">(0 to disable, e.g., 3000)</small>'));
+                body.appendChild(createInput('opuc_manual_optimize_res', 'Manual ⚡ Optimize Target (Max px)', '2500', '<small style="color:var(--opuc-text-muted);">(e.g., 2500)</small>'));
 
                 body.appendChild(createHeader('📝 Captions & Formatting'));
                 body.appendChild(createInput('opuc_auto_resize', 'Global Auto-Resize (Physical pixels)', '100%', '<small style="color:var(--opuc-text-muted);">(e.g. 800x, x600, 800x600, 50%)</small>'));
@@ -197,7 +193,10 @@
             
             window.OPUcConfig.set('opuc_nskal_button', document.getElementById('opuc_nskal_button').checked); 
             window.OPUcConfig.set('opuc_button_position', document.getElementById('opuc_button_position').value); 
-            window.OPUcConfig.set('opuc_max_staging_res', document.getElementById('opuc_max_staging_res').value); // NEW
+            
+            window.OPUcConfig.set('opuc_max_staging_res', document.getElementById('opuc_max_staging_res').value); 
+            window.OPUcConfig.set('opuc_manual_optimize_res', document.getElementById('opuc_manual_optimize_res').value); 
+
             window.OPUcConfig.set('opuc_auto_resize', document.getElementById('opuc_auto_resize').value);
             window.OPUcConfig.set('opuc_image_width', document.getElementById('opuc_image_width').value); 
             window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
