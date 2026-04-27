@@ -17,7 +17,7 @@ Potřebuješ prohlížeč s podporou userscriptů:
 Instalace:
 
 1. Otevři instalační odkaz:
-   `https://github.com/hanenashi/OPUc_ultimate/raw/main/OPUc.user.js`
+   (https://github.com/hanenashi/OPUc_ultimate/raw/main/OPUc.user.js)
 2. Userscript manager nabídne instalaci skriptu.
 3. Potvrď instalaci.
 4. Otevři Okoun klub.
