@@ -34,33 +34,50 @@
             reader.readAsDataURL(file);
         },
 
+        // FIXED: Unified Canvas Processor handles both Resizing AND Format Swapping
         applyMaxResolution: function(file, maxEdge) {
             return new Promise((resolve) => {
+                const targetFormat = window.OPUcConfig.settings.uploadFormat || 'original';
+                const origExt = file.name.split('.').pop().toLowerCase() || 'jpg';
+                const needsConv = (targetFormat === 'jpeg' && origExt !== 'jpg' && origExt !== 'jpeg') || (targetFormat === 'webp' && origExt !== 'webp');
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const img = new Image();
                     img.onload = () => {
                         let w = img.width, h = img.height;
-                        if (w <= maxEdge && h <= maxEdge) { resolve(file); return; }
+                        if (w <= maxEdge && h <= maxEdge && !needsConv) { resolve(file); return; }
                         
-                        if (w > h) { h = Math.round(h * (maxEdge / w)); w = maxEdge; }
-                        else { w = Math.round(w * (maxEdge / h)); h = maxEdge; }
+                        if (maxEdge > 0 && (w > maxEdge || h > maxEdge)) {
+                            if (w > h) { h = Math.round(h * (maxEdge / w)); w = maxEdge; }
+                            else { w = Math.round(w * (maxEdge / h)); h = maxEdge; }
+                        }
                         
                         const canvas = document.createElement('canvas');
                         canvas.width = w; canvas.height = h;
                         const ctx = canvas.getContext('2d');
+
+                        let finalExt = origExt;
+                        let mimeType = file.type;
+                        if (targetFormat === 'jpeg') { finalExt = 'jpeg'; mimeType = 'image/jpeg'; }
+                        else if (targetFormat === 'webp') { finalExt = 'webp'; mimeType = 'image/webp'; }
+                        else { finalExt = (origExt === 'png') ? 'png' : 'jpeg'; mimeType = (origExt === 'png') ? 'image/png' : 'image/jpeg'; }
+
+                        // White background fill to protect transparent PNGs when converting to JPEG
+                        if (mimeType === 'image/jpeg' && file.type === 'image/png') {
+                            ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, w, h);
+                        }
+
                         ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
                         ctx.drawImage(img, 0, 0, w, h);
                         
                         canvas.toBlob((blob) => {
-                            const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
-                            const finalExt = (ext === 'png') ? 'png' : 'jpeg';
-                            const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + `_opt.${finalExt}`, { type: `image/${finalExt}` });
+                            const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + `_opt.${finalExt}`, { type: mimeType });
                             newFile.opucCaption = file.opucCaption;
                             newFile.opucStyleOverride = file.opucStyleOverride;
-                            newFile.opucSelected = file.opucSelected !== false; // Preserve Selection
+                            newFile.opucSelected = file.opucSelected !== false; 
                             resolve(newFile);
-                        }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+                        }, mimeType, 0.85);
                     };
                     img.src = e.target.result;
                 };
@@ -70,6 +87,10 @@
 
         applyAutoResize: function(file, resizeStr) {
             return new Promise((resolve) => {
+                const targetFormat = window.OPUcConfig.settings.uploadFormat || 'original';
+                const origExt = file.name.split('.').pop().toLowerCase() || 'jpg';
+                const needsConv = (targetFormat === 'jpeg' && origExt !== 'jpg' && origExt !== 'jpeg') || (targetFormat === 'webp' && origExt !== 'webp');
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const img = new Image();
@@ -85,23 +106,33 @@
                             else if (!tw && th) { h = th; w = Math.round(img.width * (th / img.height)); }
                             else if (tw && th) { w = tw; h = th; }
                         }
-                        if (w === img.width && h === img.height) { resolve(file); return; }
+                        
+                        if (w === img.width && h === img.height && !needsConv) { resolve(file); return; }
 
                         const canvas = document.createElement('canvas');
                         canvas.width = w; canvas.height = h;
                         const ctx = canvas.getContext('2d');
+
+                        let finalExt = origExt;
+                        let mimeType = file.type;
+                        if (targetFormat === 'jpeg') { finalExt = 'jpeg'; mimeType = 'image/jpeg'; }
+                        else if (targetFormat === 'webp') { finalExt = 'webp'; mimeType = 'image/webp'; }
+                        else { finalExt = (origExt === 'png') ? 'png' : 'jpeg'; mimeType = (origExt === 'png') ? 'image/png' : 'image/jpeg'; }
+
+                        if (mimeType === 'image/jpeg' && file.type === 'image/png') {
+                            ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, w, h);
+                        }
+
                         ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
                         ctx.drawImage(img, 0, 0, w, h);
                         
                         canvas.toBlob((blob) => {
-                            const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
-                            const finalExt = (ext === 'png') ? 'png' : 'jpeg';
-                            const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + `_auto.${finalExt}`, { type: `image/${finalExt}` });
+                            const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + `_auto.${finalExt}`, { type: mimeType });
                             newFile.opucCaption = file.opucCaption;
                             newFile.opucStyleOverride = file.opucStyleOverride;
-                            newFile.opucSelected = file.opucSelected !== false; // Preserve Selection
+                            newFile.opucSelected = file.opucSelected !== false; 
                             resolve(newFile);
-                        }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+                        }, mimeType, 0.85);
                     };
                     img.src = e.target.result;
                 };
@@ -129,13 +160,11 @@
 
         optimizeQueue: async function() {
             window.OPUcUI.setWorkingState(() => {});
-            
             let safeRes = parseInt(window.OPUcConfig.settings.manualOptimizeRes, 10);
             if (isNaN(safeRes) || safeRes <= 0) safeRes = 2500; 
             
             for (let i = 0; i < this.queue.length; i++) {
                 let file = this.queue[i];
-                // ONLY optimize if selected
                 if (file && file.type.startsWith('image/') && file.opucSelected !== false) {
                     this.queue[i] = await this.applyMaxResolution(file, safeRes);
                 }
@@ -191,7 +220,6 @@
             removeBtn.onclick = (e) => { e.preventDefault(); this.removeFromQueue(index); };
             topHalf.appendChild(removeBtn);
 
-            // FIXED: The Selection Checkbox
             const selectBox = document.createElement('input');
             selectBox.type = 'checkbox';
             selectBox.checked = isSelected;
@@ -200,7 +228,7 @@
             selectBox.onchange = (e) => {
                 file.opucSelected = e.target.checked;
                 container.style.opacity = e.target.checked ? '1' : '0.4';
-                this.refreshControls(); // Instantly update the button counters
+                this.refreshControls(); 
             };
             topHalf.appendChild(selectBox);
 
@@ -406,7 +434,6 @@
                         this.showPreviewModal(controls);
                     });
 
-                    // Dynamic text based on selection
                     const optBtn = this.createYUIButton(`⚡ Optimize (${selectedItems})`, null, async (e) => {
                         e.preventDefault(); if (this.isUploading || selectedItems === 0) return;
                         await this.optimizeQueue();
@@ -445,7 +472,6 @@
             }
 
             let simulatedOutput = '';
-            // ONLY preview selected
             const validItems = this.queue.filter(f => f !== null && f.opucSelected !== false);
             validItems.forEach((file, index) => {
                 const isLast = (index === validItems.length - 1);
@@ -514,25 +540,30 @@
             });
 
             const glob = window.OPUcConfig.settings.autoResize;
+            const targetFormat = window.OPUcConfig.settings.uploadFormat || 'original';
 
             for (let i = 0; i < this.queue.length; i++) {
                 if (!this.isUploading) break; 
                 const file = this.queue[i];
-                // ONLY upload if selected
                 if (file !== null && file.opucSelected !== false) {
                     try {
                         const metadata = { caption: file.opucCaption || '', styleOverride: file.opucStyleOverride || '' };
                         const isLastItem = (completed === itemsToUpload - 1);
                         
                         let fileToUpload = file;
-                        if (glob && glob !== '100%' && !file.opucOriginalFile) {
-                            fileToUpload = await this.applyAutoResize(file, glob);
+                        let origExt = file.name.split('.').pop().toLowerCase() || 'jpg';
+                        let needsConv = (targetFormat === 'jpeg' && origExt !== 'jpg' && origExt !== 'jpeg') || (targetFormat === 'webp' && origExt !== 'webp');
+
+                        if ((glob && glob !== '100%') || needsConv) {
+                            if (!file.opucOriginalFile) {
+                                fileToUpload = await this.applyAutoResize(file, (glob && glob !== '100%') ? glob : '100%');
+                            }
                         }
 
                         await window.OPUcAPI.upload(fileToUpload, metadata, isLastItem); 
                         
                         document.querySelectorAll(`.opuc-stage-tile[data-index="${i}"]`).forEach(t => t.style.opacity = '0.3');
-                        this.queue[i] = null; completed++; // Remove successfully uploaded items
+                        this.queue[i] = null; completed++; 
                         
                         const pct = Math.round((completed / itemsToUpload) * 100);
                         document.querySelectorAll('.opuc-upload-btn').forEach(btn => {
@@ -548,14 +579,21 @@
             this.isUploading = true; let completed = 0; const total = filesArray.length;
             window.OPUcUI.setWorkingState(() => { this.isUploading = false; });
             const glob = window.OPUcConfig.settings.autoResize;
+            const targetFormat = window.OPUcConfig.settings.uploadFormat || 'original';
             
             for (let i=0; i<filesArray.length; i++) {
                 if (!this.isUploading) break;
                 try {
                     const isLastItem = (i === filesArray.length - 1);
                     let fileToUpload = filesArray[i];
-                    if (glob && glob !== '100%' && !fileToUpload.opucOriginalFile) {
-                        fileToUpload = await this.applyAutoResize(fileToUpload, glob);
+                    
+                    let origExt = fileToUpload.name.split('.').pop().toLowerCase() || 'jpg';
+                    let needsConv = (targetFormat === 'jpeg' && origExt !== 'jpg' && origExt !== 'jpeg') || (targetFormat === 'webp' && origExt !== 'webp');
+
+                    if ((glob && glob !== '100%') || needsConv) {
+                        if (!fileToUpload.opucOriginalFile) {
+                            fileToUpload = await this.applyAutoResize(fileToUpload, (glob && glob !== '100%') ? glob : '100%');
+                        }
                     }
                     await window.OPUcAPI.upload(fileToUpload, {}, isLastItem); 
                     completed++; window.OPUcUI.updateProgress(completed, total);
@@ -571,6 +609,7 @@
         const stagingEnabled = window.OPUcConfig.settings.stagingEnabled;
         const isLoggedIn = window.OPUcConfig.state.isLoggedIn;
         const maxRes = parseInt(window.OPUcConfig.settings.maxStagingRes, 10);
+        const targetFormat = window.OPUcConfig.settings.uploadFormat || 'original';
 
         let filesArray = Array.from(files);
         if (!isLoggedIn) {
@@ -586,9 +625,14 @@
             
             for (let i = 0; i < filesArray.length; i++) {
                 let file = filesArray[i];
-                file.opucSelected = true; // Auto-select on drop
-                if (maxRes > 0 && file.type.startsWith('image/')) {
-                    file = await window.OPUcEditor.applyMaxResolution(file, maxRes);
+                file.opucSelected = true; 
+                
+                let origExt = file.name.split('.').pop().toLowerCase() || 'jpg';
+                let needsConv = (targetFormat === 'jpeg' && origExt !== 'jpg' && origExt !== 'jpeg') || (targetFormat === 'webp' && origExt !== 'webp');
+
+                if ((maxRes > 0 || needsConv) && file.type.startsWith('image/')) {
+                    // Trick applyMaxResolution into just doing format conversion if maxRes is 0
+                    file = await window.OPUcEditor.applyMaxResolution(file, maxRes > 0 ? maxRes : 99999);
                 }
                 window.OPUcEditor.queue.push(file);
             }
