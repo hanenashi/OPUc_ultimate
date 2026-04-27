@@ -29,18 +29,18 @@
             get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); },
             get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); },
             
+            // NEW: Ingestion Armor Limit
+            get maxStagingRes() { return window.OPUcConfig.get('opuc_max_staging_res', '0'); },
             get autoResize() { return window.OPUcConfig.get('opuc_auto_resize', '100%'); }, 
+            get imageWidth() { return window.OPUcConfig.get('opuc_image_width', ''); },
             
             get format() { return window.OPUcConfig.get('opuc_format', 'auto'); },
             get style() { return window.OPUcConfig.get('opuc_style', 'image'); },
-            
-            get imageWidth() { return window.OPUcConfig.get('opuc_image_width', ''); },
             get captionPosition() { return window.OPUcConfig.get('opuc_caption_position', 'below'); },
             get captionSpacing() { return window.OPUcConfig.get('opuc_caption_spacing', 'double'); },
             get betweenSpacing() { return window.OPUcConfig.get('opuc_between_spacing', 'double'); },
 
             get nskalButton() { return window.OPUcConfig.get('opuc_nskal_button', false); },
-            // NEW: Main Button Position
             get buttonPosition() { return window.OPUcConfig.get('opuc_button_position', 'right'); }
         },
 
