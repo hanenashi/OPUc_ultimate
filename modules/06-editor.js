@@ -34,7 +34,6 @@
             reader.readAsDataURL(file);
         },
 
-        // FIXED: Re-engineered to explicitly take a pixel target
         applyMaxResolution: function(file, maxEdge) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -68,7 +67,6 @@
             });
         },
 
-        // Preserved for pure string parsing on final upload
         applyAutoResize: function(file, resizeStr) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -127,10 +125,12 @@
             this.renderAllStagedItems();
         },
 
-        // NEW: The Manual Power-Crunch
         optimizeQueue: async function() {
             window.OPUcUI.setWorkingState(() => {});
-            const safeRes = 2500; // Guaranteed safe limit for Cropper.js
+            
+            // FIXED: Dynamically fetch the custom user target limit
+            let safeRes = parseInt(window.OPUcConfig.settings.manualOptimizeRes, 10);
+            if (isNaN(safeRes) || safeRes <= 0) safeRes = 2500; 
             
             for (let i = 0; i < this.queue.length; i++) {
                 let file = this.queue[i];
@@ -387,7 +387,6 @@
                         this.showPreviewModal(controls);
                     });
 
-                    // FIXED: Insert the ⚡ Optimize Button before Upload
                     const optBtn = this.createYUIButton('⚡ Optimize', null, async (e) => {
                         e.preventDefault(); if (this.isUploading) return;
                         await this.optimizeQueue();
@@ -403,7 +402,7 @@
 
                     controls.appendChild(clearBtn.wrapper); 
                     controls.appendChild(previewBtn.wrapper); 
-                    controls.appendChild(optBtn.wrapper); // Inject Optimize Button
+                    controls.appendChild(optBtn.wrapper); 
                     controls.appendChild(uploadBtn.wrapper);
                 } else {
                     controls.style.display = 'none';
@@ -540,7 +539,6 @@
 
     window.OPUcCore = window.OPUcCore || {};
     
-    // FIXED: Upgraded handleIncomingFiles to async to support Ingestion Armor
     window.OPUcCore.handleIncomingFiles = async function(files) {
         const stagingEnabled = window.OPUcConfig.settings.stagingEnabled;
         const isLoggedIn = window.OPUcConfig.state.isLoggedIn;
@@ -569,7 +567,6 @@
             
             window.OPUcUI.resetButtonState();
         } else {
-            // Direct Upload doesn't hit staging, so we just pass it down to directUploadBatch
             window.OPUcEditor.directUploadBatch(filesArray);
         }
     };
