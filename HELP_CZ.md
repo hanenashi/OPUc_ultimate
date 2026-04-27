@@ -21,7 +21,7 @@ Instalace:
 2. Userscript manager nabídne instalaci skriptu.
 3. Potvrď instalaci.
 4. Otevři Okoun klub.
-5. U odpovědního pole by se mělo objevit tlačítko OPUc.
+5. U odpovědního pole by se mělo objevit tlačítko OPUc. Levý čudlík myši/poklep na founu vyvolá výběr obrázku pro nahrání/OPU galerii (nechá se nastavit v Settings, které se vyvolají pravým čudlíkem/podržením prstu na mobilu) 
 
 Poznámka: instalovaný skript je hlavně loader. Skutečné moduly si natahuje z GitHubu, takže při aktualizaci repozitáře se nemusí pokaždé ručně přeinstalovávat celé monstrum. Ano, je to živé. Ano, může to kousnout.
 
@@ -31,12 +31,10 @@ Poznámka: instalovaný skript je hlavně loader. Skutečné moduly si natahuje 
 
 OPUc běží hlavně na stránkách Okounu:
 
-- klubové stránky
-- odpovědi
-- editace příspěvků
 - posílání příspěvků
+- odpovědi
 
-Typicky tedy tam, kde je textové pole pro příspěvek.
+Registrovaný OPU uživatel má k dispozici nahrávání více obrázků najednou a svoji OPU galerii. Anon/id bez OPU účtu může nahrát právě jeden soubor na každé použití OPUcu)
 
 ---
 
@@ -45,10 +43,10 @@ Typicky tedy tam, kde je textové pole pro příspěvek.
 ### Upload jednoho obrázku
 
 1. Otevři klub na Okounu.
-2. Klikni do odpovědního pole.
+2. Klikni na Přispět nebo Odpovědět
 3. Klikni na tlačítko OPUc.
 4. Vyber obrázek z počítače.
-5. Obrázek se objeví ve staging ribbonu.
+5. Obrázek se objeví ve staging ribbonu. (Při vypnutém Staging Ribbonu se rovnou nahraje a hotový kód se vloží do odpovědi.) 
 6. Klikni na `Upload`.
 7. OPUc nahraje obrázek na OPU a vloží hotový kód do odpovědi.
 
