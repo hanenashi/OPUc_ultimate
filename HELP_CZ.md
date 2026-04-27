@@ -46,7 +46,7 @@ Registrovaný OPU uživatel má k dispozici nahrávání více obrázků najedno
 2. Klikni na Přispět nebo Odpovědět
 3. Klikni na tlačítko OPUc.
 4. Vyber obrázek z počítače.
-5. Obrázek se objeví ve staging ribbonu. (Při vypnutém Staging Ribbonu se rovnou nahraje a hotový kód se vloží do odpovědi.) 
+5. Obrázek se objeví ve staging ribbonu. (Při vypnutém staging ribbonu se rovnou nahraje a hotový kód se vloží do odpovědi.) 
 6. Klikni na `Upload`.
 7. OPUc nahraje obrázek na OPU a vloží hotový kód do odpovědi.
 
