@@ -45,7 +45,6 @@
 
             const container = document.createElement('div');
             container.className = 'opuc-scalable';
-            // FIXED: Inverse Scaling Math
             container.style.cssText = `width: calc(95vw / var(--opuc-scale)); max-width: calc(900px / var(--opuc-scale)); max-height: calc(90vh / var(--opuc-scale)); background: var(--opuc-bg-secondary); border-radius: 8px; border: 1px solid var(--opuc-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);`;
 
             const header = document.createElement('div');
@@ -237,6 +236,7 @@
                 newFile.opucOriginalFile = this.originalFile.opucOriginalFile || this.originalFile;
                 newFile.opucCaption = this.originalFile.opucCaption;
                 newFile.opucStyleOverride = this.originalFile.opucStyleOverride;
+                newFile.opucSelected = this.originalFile.opucSelected !== false; // Preserve Selection
 
                 window.OPUcEditor.queue[this.targetIndex] = newFile;
                 window.OPUcEditor.renderAllStagedItems();
