@@ -29,10 +29,8 @@
             get uiScale() { return window.OPUcConfig.get('opuc_ui_scale', '1.0'); },
             get galleryThumbSize() { return window.OPUcConfig.get('opuc_gallery_thumb_size', '100px'); },
             
-            // FIXED: Custom values for both Auto and Manual Optimization
             get maxStagingRes() { return window.OPUcConfig.get('opuc_max_staging_res', '0'); },
             get manualOptimizeRes() { return window.OPUcConfig.get('opuc_manual_optimize_res', '2500'); },
-            
             get autoResize() { return window.OPUcConfig.get('opuc_auto_resize', '100%'); }, 
             get imageWidth() { return window.OPUcConfig.get('opuc_image_width', ''); },
             
@@ -43,7 +41,10 @@
             get betweenSpacing() { return window.OPUcConfig.get('opuc_between_spacing', 'double'); },
 
             get nskalButton() { return window.OPUcConfig.get('opuc_nskal_button', false); },
-            get buttonPosition() { return window.OPUcConfig.get('opuc_button_position', 'right'); }
+            get buttonPosition() { return window.OPUcConfig.get('opuc_button_position', 'right'); },
+            
+            // NEW: Format Swap Setting
+            get uploadFormat() { return window.OPUcConfig.get('opuc_upload_format', 'original'); }
         },
 
         state: { isLoggedIn: true, activeTextArea: null },
