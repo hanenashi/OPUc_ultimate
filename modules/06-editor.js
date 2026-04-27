@@ -58,6 +58,7 @@
                             const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + `_opt.${finalExt}`, { type: `image/${finalExt}` });
                             newFile.opucCaption = file.opucCaption;
                             newFile.opucStyleOverride = file.opucStyleOverride;
+                            newFile.opucSelected = file.opucSelected !== false; // Preserve Selection
                             resolve(newFile);
                         }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
                     };
@@ -98,6 +99,7 @@
                             const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + `_auto.${finalExt}`, { type: `image/${finalExt}` });
                             newFile.opucCaption = file.opucCaption;
                             newFile.opucStyleOverride = file.opucStyleOverride;
+                            newFile.opucSelected = file.opucSelected !== false; // Preserve Selection
                             resolve(newFile);
                         }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
                     };
@@ -128,13 +130,13 @@
         optimizeQueue: async function() {
             window.OPUcUI.setWorkingState(() => {});
             
-            // FIXED: Dynamically fetch the custom user target limit
             let safeRes = parseInt(window.OPUcConfig.settings.manualOptimizeRes, 10);
             if (isNaN(safeRes) || safeRes <= 0) safeRes = 2500; 
             
             for (let i = 0; i < this.queue.length; i++) {
                 let file = this.queue[i];
-                if (file && file.type.startsWith('image/')) {
+                // ONLY optimize if selected
+                if (file && file.type.startsWith('image/') && file.opucSelected !== false) {
                     this.queue[i] = await this.applyMaxResolution(file, safeRes);
                 }
             }
@@ -148,10 +150,12 @@
             container.dataset.index = index;
             container.draggable = true; 
             
-            container.style.cssText = `width: 120px; display: flex; flex-direction: column; border: 1px solid var(--opuc-border); border-radius: 4px; background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab; user-select: none; position: relative; overflow: hidden;`;
+            const isSelected = file.opucSelected !== false;
+            
+            container.style.cssText = `width: 120px; display: flex; flex-direction: column; border: 1px solid var(--opuc-border); border-radius: 4px; background: var(--opuc-bg-secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: grab; user-select: none; position: relative; overflow: hidden; opacity: ${isSelected ? '1' : '0.4'}; transition: opacity 0.2s;`;
 
-            container.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', index); setTimeout(() => container.style.opacity = '0.4', 0); });
-            container.addEventListener('dragend', () => { container.style.opacity = '1'; document.querySelectorAll('.opuc-stage-tile').forEach(el => el.classList.remove('opuc-drag-left', 'opuc-drag-right')); });
+            container.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', index); setTimeout(() => container.style.opacity = '0.3', 0); });
+            container.addEventListener('dragend', () => { container.style.opacity = file.opucSelected !== false ? '1' : '0.4'; document.querySelectorAll('.opuc-stage-tile').forEach(el => el.classList.remove('opuc-drag-left', 'opuc-drag-right')); });
             container.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 const rect = container.getBoundingClientRect(); const midPoint = rect.left + rect.width / 2;
@@ -186,6 +190,19 @@
             removeBtn.style.cssText = 'position: absolute; top: 4px; left: 4px; background: rgba(244, 67, 54, 0.9); color: white; border: none; border-radius: 4px; width: 22px; height: 22px; font-size: 11px; cursor: pointer; z-index: 10;';
             removeBtn.onclick = (e) => { e.preventDefault(); this.removeFromQueue(index); };
             topHalf.appendChild(removeBtn);
+
+            // FIXED: The Selection Checkbox
+            const selectBox = document.createElement('input');
+            selectBox.type = 'checkbox';
+            selectBox.checked = isSelected;
+            selectBox.title = 'Select/Deselect for Upload and Optimization';
+            selectBox.style.cssText = 'position: absolute; top: 4px; left: 50%; transform: translateX(-50%); width: 18px; height: 18px; margin: 0; cursor: pointer; z-index: 10; accent-color: var(--opuc-accent); box-shadow: 0 0 0 1px rgba(0,0,0,0.5); border-radius: 3px;';
+            selectBox.onchange = (e) => {
+                file.opucSelected = e.target.checked;
+                container.style.opacity = e.target.checked ? '1' : '0.4';
+                this.refreshControls(); // Instantly update the button counters
+            };
+            topHalf.appendChild(selectBox);
 
             const hasCaption = !!file.opucCaption || !!file.opucStyleOverride;
             const editBtn = document.createElement('button');
@@ -372,6 +389,8 @@
 
         refreshControls: function() {
             const activeItems = this.queue.filter(item => item !== null).length;
+            const selectedItems = this.queue.filter(item => item !== null && item.opucSelected !== false).length;
+            
             const allControls = document.querySelectorAll('.opuc-staging-controls');
             allControls.forEach(controls => {
                 if (activeItems > 0) {
@@ -387,18 +406,24 @@
                         this.showPreviewModal(controls);
                     });
 
-                    const optBtn = this.createYUIButton('⚡ Optimize', null, async (e) => {
-                        e.preventDefault(); if (this.isUploading) return;
+                    // Dynamic text based on selection
+                    const optBtn = this.createYUIButton(`⚡ Optimize (${selectedItems})`, null, async (e) => {
+                        e.preventDefault(); if (this.isUploading || selectedItems === 0) return;
                         await this.optimizeQueue();
                     });
 
-                    const uploadBtn = this.createYUIButton(`Upload`, 'opuc-upload-btn', async (e) => {
+                    const uploadBtn = this.createYUIButton(`Upload (${selectedItems})`, 'opuc-upload-btn', async (e) => {
                         e.preventDefault();
+                        if (this.isUploading || selectedItems === 0) return;
                         const parentForm = uploadBtn.wrapper.closest('.post.content') || document.getElementById('article-form-main');
                         window.OPUcConfig.state.activeTextArea = parentForm.querySelector('textarea[name="body"]');
-                        if (this.isUploading) { this.isUploading = false; return; }
-                        await this.flushQueue(activeItems);
+                        await this.flushQueue(selectedItems);
                     });
+
+                    if (selectedItems === 0) {
+                        optBtn.btn.style.opacity = '0.5'; optBtn.btn.style.cursor = 'not-allowed';
+                        uploadBtn.btn.style.opacity = '0.5'; uploadBtn.btn.style.cursor = 'not-allowed';
+                    }
 
                     controls.appendChild(clearBtn.wrapper); 
                     controls.appendChild(previewBtn.wrapper); 
@@ -420,7 +445,8 @@
             }
 
             let simulatedOutput = '';
-            const validItems = this.queue.filter(f => f !== null);
+            // ONLY preview selected
+            const validItems = this.queue.filter(f => f !== null && f.opucSelected !== false);
             validItems.forEach((file, index) => {
                 const isLast = (index === validItems.length - 1);
                 const metadata = { caption: file.opucCaption || '', styleOverride: file.opucStyleOverride || '' };
@@ -492,7 +518,8 @@
             for (let i = 0; i < this.queue.length; i++) {
                 if (!this.isUploading) break; 
                 const file = this.queue[i];
-                if (file !== null) {
+                // ONLY upload if selected
+                if (file !== null && file.opucSelected !== false) {
                     try {
                         const metadata = { caption: file.opucCaption || '', styleOverride: file.opucStyleOverride || '' };
                         const isLastItem = (completed === itemsToUpload - 1);
@@ -505,7 +532,8 @@
                         await window.OPUcAPI.upload(fileToUpload, metadata, isLastItem); 
                         
                         document.querySelectorAll(`.opuc-stage-tile[data-index="${i}"]`).forEach(t => t.style.opacity = '0.3');
-                        this.queue[i] = null; completed++;
+                        this.queue[i] = null; completed++; // Remove successfully uploaded items
+                        
                         const pct = Math.round((completed / itemsToUpload) * 100);
                         document.querySelectorAll('.opuc-upload-btn').forEach(btn => {
                             btn.style.setProperty('background-image', `linear-gradient(90deg, #F44336 ${pct}%, #aaa ${pct}%)`, 'important');
@@ -558,13 +586,13 @@
             
             for (let i = 0; i < filesArray.length; i++) {
                 let file = filesArray[i];
+                file.opucSelected = true; // Auto-select on drop
                 if (maxRes > 0 && file.type.startsWith('image/')) {
                     file = await window.OPUcEditor.applyMaxResolution(file, maxRes);
                 }
                 window.OPUcEditor.queue.push(file);
-                window.OPUcEditor.renderAllStagedItems();
             }
-            
+            window.OPUcEditor.renderAllStagedItems();
             window.OPUcUI.resetButtonState();
         } else {
             window.OPUcEditor.directUploadBatch(filesArray);
