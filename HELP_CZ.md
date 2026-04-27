@@ -1,4 +1,4 @@
-# OPUc Ultimate — česká nápověda
+# OPUc Ultimate — česká nápověda (generováno ChatGPTem)
 
 OPUc Ultimate je rozšíření pro Okoun, které napojí obrázkový hosting `opu.peklo.biz` přímo do odpovědního pole na `okoun.cz`.
 
@@ -293,7 +293,7 @@ Hodnota:
 
 znamená vypnuto.
 
-Tohle je dobré pro obří fotky z foťáku, které by jinak mohly zatopit browseru.
+Tohle je dobré pro obří fotky z foťáku, které by jinak mohly zatopit browseru. (Obří fotky spolehlivě shoděj kiwi browser při pokusu o nahrání editoru.)
 
 ### Manual Optimize Target
 
@@ -608,12 +608,7 @@ Před uploadem mysli na:
 - osobní fotky
 - SPZ auta
 - adresy
-- GPS metadata
 - screenshoty s citlivými údaji
-
-EXIF privacy stripper je v plánu, ale pokud si nejsi jistý, raději metadata smaž předem jiným nástrojem.
-
-Internet nezapomíná. Jen občas předstírá demenci.
 
 ---
 
