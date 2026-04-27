@@ -1,4 +1,3 @@
-
 // modules/10-settings.js
 (function() {
     'use strict';
@@ -6,13 +5,9 @@
     window.OPUcSettings = {
         nskalTimer: null,
 
-        // NEW: Dynamic version extractor
         getVersion: function() {
-            if (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) {
-                return GM_info.script.version;
-            } else if (typeof GM !== 'undefined' && GM.info && GM.info.script && GM.info.script.version) {
-                return GM.info.script.version;
-            }
+            if (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) return GM_info.script.version;
+            else if (typeof GM !== 'undefined' && GM.info && GM.info.script && GM.info.script.version) return GM.info.script.version;
             return 'Auto (Local)';
         },
 
@@ -64,8 +59,6 @@
 
                 const versionText = document.createElement('div');
                 versionText.style.cssText = 'font-size: 13px; font-weight: bold; color: var(--opuc-text-muted); margin-top: 4px;';
-                
-                // FIXED: Inject the dynamically fetched version!
                 versionText.innerText = 'Version ' + this.getVersion(); 
 
                 nskalBanner.appendChild(avatarContainer);
@@ -76,23 +69,10 @@
                 const playNskal = () => {
                     videoOverlay.style.opacity = '1';
                     videoOverlay.currentTime = 0;
-                    videoOverlay.play().catch(e => {
-                        console.warn("OPUc: Browser blocked video autoplay.", e);
-                        videoOverlay.style.opacity = '0';
-                        scheduleNext();
-                    });
+                    videoOverlay.play().catch(e => { videoOverlay.style.opacity = '0'; scheduleNext(); });
                 };
-
-                const scheduleNext = () => {
-                    const delay = Math.floor(Math.random() * 4000) + 8000; 
-                    this.nskalTimer = setTimeout(playNskal, delay);
-                };
-
-                videoOverlay.addEventListener('ended', () => {
-                    videoOverlay.style.opacity = '0';
-                    scheduleNext();
-                });
-
+                const scheduleNext = () => { this.nskalTimer = setTimeout(playNskal, Math.floor(Math.random() * 4000) + 8000); };
+                videoOverlay.addEventListener('ended', () => { videoOverlay.style.opacity = '0'; scheduleNext(); });
                 this.nskalTimer = setTimeout(playNskal, 1000);
 
                 const createHeader = (title) => {
@@ -132,11 +112,8 @@
                 body.appendChild(createHeader('🎨 Appearance'));
                 body.appendChild(createToggle('opuc_nskal_button', 'Replace Main Button with NSKAL Icon', false)); 
                 body.appendChild(createSelect('opuc_button_position', 'Button Position in Row', [
-                    { value: 'left', text: 'Left (First)' }, 
-                    { value: 'middle', text: 'Middle' }, 
-                    { value: 'right', text: 'Right (Last)' }
+                    { value: 'left', text: 'Left (First)' }, { value: 'middle', text: 'Middle' }, { value: 'right', text: 'Right (Last)' }
                 ], 'right'));
-                
                 body.appendChild(createSelect('opuc_theme', 'UI Theme', [{ value: 'classic', text: 'Okoun Classic (Light)' }, { value: 'dark', text: 'Night Mode (Dark)' }, { value: 'contrast', text: 'High Contrast (Hacker)' }, { value: 'retro', text: 'Retro 8-Bit' }], 'classic'));
                 body.appendChild(createSelect('opuc_ui_scale', 'Mobile UI Scale', [{ value: '0.8', text: '80% (Small)' }, { value: '1.0', text: '100% (Normal)' }, { value: '1.25', text: '125% (Large)' }, { value: '1.5', text: '150% (Extra Large)' }], '1.0'));
                 body.appendChild(createSelect('opuc_gallery_thumb_size', 'Gallery Thumbnail Size', [{ value: '80px', text: 'Small (80px)' }, { value: '100px', text: 'Medium (100px)' }, { value: '150px', text: 'Large (150px)' }, { value: '200px', text: 'X-Large (200px)' }], '100px'));
@@ -148,6 +125,14 @@
                 body.appendChild(createInput('opuc_upload_shortcut', 'Clipboard Shortcut', 'Alt+V', '<small style="color:var(--opuc-text-muted);">(e.g., Ctrl+V or Alt+V)</small>'));
                 body.appendChild(createToggle('opuc_intercept_paste_urls', 'Leech URLs on Standard Paste (Ctrl+V)', false));
                 
+                // NEW: Ingestion Armor Dropdown
+                body.appendChild(createSelect('opuc_max_staging_res', 'Auto-Downscale on Ingestion (Prevents Crashes)', [
+                    { value: '0', text: 'Off (Keep Original Size in Staging)' },
+                    { value: '2000', text: 'Max 2000px' },
+                    { value: '3000', text: 'Max 3000px' },
+                    { value: '4000', text: 'Max 4000px' }
+                ], '0'));
+
                 body.appendChild(createHeader('📝 Captions & Formatting'));
                 body.appendChild(createInput('opuc_auto_resize', 'Global Auto-Resize (Physical pixels)', '100%', '<small style="color:var(--opuc-text-muted);">(e.g. 800x, x600, 800x600, 50%)</small>'));
                 body.appendChild(createInput('opuc_image_width', 'Inject HTML width="..." attribute', '', '<small style="color:var(--opuc-text-muted);">(e.g. 500, 100%, leave empty for none)</small>'));
@@ -191,10 +176,7 @@
         },
 
         close: function() { 
-            if (this.nskalTimer) {
-                clearTimeout(this.nskalTimer);
-                this.nskalTimer = null;
-            }
+            if (this.nskalTimer) { clearTimeout(this.nskalTimer); this.nskalTimer = null; }
             const modal = document.getElementById('opuc-settings-modal'); 
             if (modal) {
                 const vid = modal.querySelector('video');
@@ -215,6 +197,7 @@
             
             window.OPUcConfig.set('opuc_nskal_button', document.getElementById('opuc_nskal_button').checked); 
             window.OPUcConfig.set('opuc_button_position', document.getElementById('opuc_button_position').value); 
+            window.OPUcConfig.set('opuc_max_staging_res', document.getElementById('opuc_max_staging_res').value); // NEW
             window.OPUcConfig.set('opuc_auto_resize', document.getElementById('opuc_auto_resize').value);
             window.OPUcConfig.set('opuc_image_width', document.getElementById('opuc_image_width').value); 
             window.OPUcConfig.set('opuc_format', document.getElementById('opuc_format').value);
