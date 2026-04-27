@@ -187,10 +187,38 @@
             menu.appendChild(createItem('opuc-menu-gallery', '🖼️ <span style="margin-left: 8px;">Gallery</span>', () => { if (window.OPUcGallery) window.OPUcGallery.open(); }, !isLoggedIn));
             
             const resizeRow = document.createElement('div');
-            resizeRow.style.cssText = `padding: 10px 15px; color: var(--opuc-text-main); font-size: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.05);`;
+            resizeRow.style.cssText = `
+                padding: 10px 15px;
+                color: var(--opuc-text-main);
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+            `;
             resizeRow.innerHTML = `
-                <div style="display:flex; align-items:center;">↔️ <span style="margin-left: 8px;">Resize</span></div>
-                <input type="text" id="opuc-menu-resize-input" title="Hit Enter to save" value="${window.OPUcConfig.settings.autoResize}" style="width: 50px; padding: 4px; background: var(--opuc-bg-primary); border: 1px solid var(--opuc-border); color: var(--opuc-text-main); border-radius: 4px; font-family: monospace; font-size: 12px; text-align: center; outline: none;">
+                <div style="display: flex; align-items: center; flex-shrink: 0;">
+                    ↔️ <span style="margin-left: 8px;">Resize</span>
+                </div>
+                <input
+                    type="text"
+                    id="opuc-menu-resize-input"
+                    title="Hit Enter to save"
+                    value="${window.OPUcConfig.settings.autoResize}"
+                    style="
+                        width: 64px;
+                        padding: 4px;
+                        background: var(--opuc-bg-primary);
+                        border: 1px solid var(--opuc-border);
+                        color: var(--opuc-text-main);
+                        border-radius: 4px;
+                        font-family: monospace;
+                        font-size: 12px;
+                        text-align: center;
+                        outline: none;
+                        flex-shrink: 0;
+                    "
+                >
             `;
             resizeRow.querySelector('input').addEventListener('click', (e) => e.stopPropagation());
             resizeRow.querySelector('input').addEventListener('keydown', (e) => {
