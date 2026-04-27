@@ -19,12 +19,14 @@ Ensure you have a userscript manager installed (like [Tampermonkey](https://www.
 * **Multi-Instance Engine:** Seamlessly injects tools into the main text box AND any dynamic "Reply" boxes you open on the fly.
 * **Smart Interceptors:** Paste (`Ctrl+V`) OS files, use the Context Menu, or Drag & Drop images directly onto any Okoun reply box.
 * **Image Processor Studio:** A built-in dark-mode editor powered by Cropper.js. Click the `✂️` icon on any staged image to crop, pan, lock aspect ratios, and manually resize before uploading.
-* **Auto-Downscale Engine:** Set a global resize limit (e.g., `800x`, `50%`) and the script will automatically shrink massive mobile photos in your browser before they ever hit the network.
+* **Dual Armor Downscaling:** Set global auto-resize for uploads, apply an **Ingestion Limit** to instantly crush massive 36MP high-res photos on drop to prevent browser crashes, or manually trigger the `⚡ Optimize` button.
+* **Selective Processing:** Toggle checkboxes on any staged thumbnail to easily include or exclude specific images from batch uploads, previews, or optimization sweeps.
+* **Format Swapping:** Force heavy lossless PNGs to automatically convert to space-saving JPEG or WEBP formats on the fly (includes smart white-background fill for transparent images).
 * **Staging Area & Batch Uploads:** A visual ribbon to preview thumbnails, reorder via Drag & Drop, review real-time file sizes, and batch-upload multiple images.
 * **Caption & Style Editor:** Click the `✏️` on any staged image to add custom captions, configure HTML `title="..."` attributes, or override injection styles just for that image.
 * **Smart Auto-Detect Injection:** Automatically reads Okoun's format dropdown and intelligently converts your images to HTML, Markdown, or Radeox syntax with semantic spacing.
 * **OPUc Gallery:** A floating, infinite-scrolling overlay to browse and insert your previously uploaded OPU images.
-* **Custom Settings & Themes:** Configure keyboard shortcuts, UI scaling, dark/light themes, and custom injection formats. (Plus, a toggle to replace the main UI button with the Mad Fixer).
+* **Custom Settings & Themes:** Configure keyboard shortcuts, UI scaling, button positioning, dark/light themes, and custom injection formats. (Plus, a toggle to replace the main UI button with the Mad Fixer).
 
 ## 🗺️ Roadmap & Upcoming Features
 
@@ -36,6 +38,7 @@ Ensure you have a userscript manager installed (like [Tampermonkey](https://www.
 - [x] **Unobtrusive Metadata:** Display file size and resolution directly on staging thumbnails.
 - [x] **Caption Engine:** Add text around images (e.g., descriptions) via a modal editor before batch uploading.
 - [x] **Drag-to-Reorder:** Re-arrange the staging queue visually using HTML5 Drag-and-Drop.
+- [x] **Selective Batching:** Checkbox toggles for granular control over queue execution.
 
 **Phase 3: Injection Arsenal**
 - [x] **Format Quick-Select:** Custom UI dropdowns to configure global and per-image injection styles.
@@ -44,7 +47,7 @@ Ensure you have a userscript manager installed (like [Tampermonkey](https://www.
 
 **Phase 4: Power-User Upgrades**
 - [x] **Image Cropping Studio:** Full Cropper.js integration for precise framing and aspect ratio control.
-- [x] **Client-Side Downscaling:** Auto-resize oversized mobile photos via HTML5 Canvas to save data and bypass server limits.
+- [x] **Client-Side Downscaling:** Auto-resize and Format-Swap oversized photos via HTML5 Canvas to save data and bypass server limits.
 - [ ] **EXIF Privacy Stripper:** Client-side removal of GPS/camera data before upload.
 - [ ] **Crash Recovery:** Serialize un-uploaded staging queues to IndexedDB to survive accidental tab closures.
 
