@@ -60,6 +60,25 @@
             return null;
         },
 
+        getThumbUrl: function(imageUrl) {
+            try {
+                const url = new URL(imageUrl);
+                const parts = url.pathname.split('/');
+                const fileName = parts.pop();
+
+                if (parts.includes('thumbs') || !fileName) return imageUrl;
+
+                const pIndex = parts.indexOf('p');
+                if (pIndex !== -1) {
+                    parts.push('thumbs', fileName);
+                    url.pathname = parts.join('/');
+                    return url.toString();
+                }
+            } catch (e) {}
+
+            return imageUrl.replace(/\/p\/(.+)\/([^/]+)$/i, '/p/$1/thumbs/$2');
+        },
+
         // FIXED: The Ultimate Tag Builder (Now with title= and width= support)
         buildTag: function(imageUrl, metadata = {}, currentBodyType, isLastItem) {
             let format = window.OPUcConfig.settings.format;
@@ -92,7 +111,7 @@
                 else if (style === 'thumb') formatString = `[url=%url%][img:%thumb%][/url]`;
             }
 
-            let thumbUrl = imageUrl.replace('/p/', '/t/');
+            let thumbUrl = this.getThumbUrl(imageUrl);
             let formattedTag = formatString.replace(/%url%/g, imageUrl).replace(/%thumb%/g, thumbUrl);
 
             const isHtmlFormat = (format === 'html');
