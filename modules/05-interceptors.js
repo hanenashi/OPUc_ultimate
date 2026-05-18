@@ -122,7 +122,14 @@
 
     window.OPUcInterceptors = {
         init: function() {
-            const isOkounTextArea = (el) => el && el.tagName === 'TEXTAREA' && el.name === 'body';
+            const isOkounTextArea = (el) => {
+                if (!el || el.tagName !== 'TEXTAREA' || el.disabled || el.readOnly) return false;
+                if (el.closest('#opuc-caption-modal, #opuc-preview-modal, #opuc-settings-modal, #opuc-crop-modal')) return false;
+                const form = el.closest('form');
+                if (!form) return false;
+                const action = (form.getAttribute('action') || '').toLowerCase();
+                return el.name === 'body' || action.includes('msgbox');
+            };
 
             document.body.addEventListener('paste', (e) => {
                 if (!isOkounTextArea(e.target)) return;

@@ -96,8 +96,8 @@
 
             if (format === 'html') {
                 if (style === 'image') formatString = `<img src="%url%"${wAttr}${isTitleMode ? ` title="${safeCap}" alt="${safeCap}"` : ''}>`;
-                else if (style === 'link') formatString = `<a href="%url%"${isTitleMode ? ` title="${safeCap}"` : ''}>%url%</a>`;
-                else if (style === 'thumb') formatString = `<a href="%url%"${isTitleMode ? ` title="${safeCap}"` : ''}><img src="%thumb%"${wAttr}${isTitleMode ? ` alt="${safeCap}"` : ''}></a>`;
+                else if (style === 'link') formatString = `<a href="%url%" target="_blank" rel="noopener noreferrer"${isTitleMode ? ` title="${safeCap}"` : ''}>%url%</a>`;
+                else if (style === 'thumb') formatString = `<a href="%url%" target="_blank" rel="noopener noreferrer"${isTitleMode ? ` title="${safeCap}"` : ''}><img src="%thumb%"${wAttr}${isTitleMode ? ` alt="${safeCap}"` : ''}></a>`;
             } 
             else if (format === 'markdown') {
                 if (style === 'image') formatString = `![${isTitleMode ? safeCap : ''}](%url%${isTitleMode ? ` "${safeCap}"` : ''})`;
@@ -149,11 +149,11 @@
         injectIntoOkoun: function(imageUrl, metadata = {}, isLastItem = true) {
             let textArea = window.OPUcConfig.state.activeTextArea;
             if (!textArea) {
-                textArea = document.getElementById('post-body'); 
+                textArea = document.getElementById('post-body') || document.querySelector('form textarea'); 
                 if(!textArea) return;
             }
 
-            const parentForm = textArea.closest('.post.content') || document.getElementById('article-form-main');
+            const parentForm = textArea.closest('form') || textArea.closest('.post.content') || document.getElementById('article-form-main');
             let currentBodyType = 'html';
             if (parentForm) {
                 const select = parentForm.querySelector('select[name="bodyType"]');

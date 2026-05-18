@@ -7,10 +7,22 @@
         cancelCallback: null,
 
         inject: function() {
+            const isInjectableTextArea = (ta) => {
+                if (!ta || ta.dataset.opucInjected || ta.disabled || ta.readOnly) return false;
+                if (ta.closest('#opuc-caption-modal, #opuc-preview-modal, #opuc-settings-modal, #opuc-crop-modal')) return false;
+
+                const form = ta.closest('form');
+                if (!form) return false;
+
+                const name = (ta.getAttribute('name') || '').toLowerCase();
+                const action = (form.getAttribute('action') || '').toLowerCase();
+                return name === 'body' || action.includes('msgbox');
+            };
+
             const injectAll = () => {
-                const textAreas = document.querySelectorAll('textarea[name="body"]');
+                const textAreas = document.querySelectorAll('form textarea');
                 textAreas.forEach(ta => {
-                    if (!ta.dataset.opucInjected) {
+                    if (isInjectableTextArea(ta)) {
                         const formContainer = ta.closest('form') || ta.closest('.post.content');
                         if (formContainer) this.buildUIForForm(formContainer, ta);
                     }
@@ -37,8 +49,13 @@
 
         buildUIForForm: function(container, textArea) {
             textArea.dataset.opucInjected = 'true';
-            const toolsRow = container.querySelector('.tools');
-            if (!toolsRow) return;
+            let toolsRow = container.querySelector('.tools');
+            if (!toolsRow) {
+                toolsRow = document.createElement('div');
+                toolsRow.className = 'tools opuc-tools-fallback';
+                toolsRow.style.cssText = 'margin-top: 8px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;';
+                textArea.parentNode.insertBefore(toolsRow, textArea.nextSibling);
+            }
 
             const isLoggedIn = window.OPUcConfig.state.isLoggedIn;
 

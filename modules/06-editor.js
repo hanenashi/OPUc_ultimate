@@ -442,8 +442,8 @@
                     const uploadBtn = this.createYUIButton(`Upload (${selectedItems})`, 'opuc-upload-btn', async (e) => {
                         e.preventDefault();
                         if (this.isUploading || selectedItems === 0) return;
-                        const parentForm = uploadBtn.wrapper.closest('.post.content') || document.getElementById('article-form-main');
-                        window.OPUcConfig.state.activeTextArea = parentForm.querySelector('textarea[name="body"]');
+                        const parentForm = uploadBtn.wrapper.closest('form') || uploadBtn.wrapper.closest('.post.content') || document.getElementById('article-form-main');
+                        window.OPUcConfig.state.activeTextArea = parentForm ? parentForm.querySelector('textarea') : null;
                         await this.flushQueue(selectedItems);
                     });
 
@@ -465,7 +465,7 @@
 
         showPreviewModal: function(controlsElement) {
             let currentBodyType = 'html';
-            const parentForm = controlsElement.closest('.post.content') || document.getElementById('article-form-main');
+            const parentForm = controlsElement.closest('form') || controlsElement.closest('.post.content') || document.getElementById('article-form-main');
             if (parentForm) {
                 const sel = parentForm.querySelector('select[name="bodyType"]');
                 if (sel) currentBodyType = sel.value;
